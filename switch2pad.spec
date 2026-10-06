@@ -12,7 +12,7 @@ IS_WIN = sys.platform == "win32"
 import compileall
 if not compileall.compile_dir("switch2pad", quiet=1):
     raise SystemExit("switch2pad tiene errores de sintaxis; corrigelos antes de compilar")
-datas, binaries, hiddenimports = [("assets/pro_controller.npz", "assets")], [], ["hid", "usb.backend.libusb1"]
+datas, binaries, hiddenimports = [("assets/pro_controller.npz", "assets"), ("assets/icon.png", "assets")], [], ["hid", "usb.backend.libusb1"]
 
 b = collect_dynamic_libs("libusb_package")
 binaries += b

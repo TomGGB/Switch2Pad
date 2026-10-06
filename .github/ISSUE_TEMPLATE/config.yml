@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and help
+    url: https://github.com/TomGGB/Switch2Pad/discussions
+    about: Ask questions and share setups in Discussions.

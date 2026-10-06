@@ -34,6 +34,13 @@ TARGET_LABELS = {
 DPAD_ARROWS = {"DPAD_UP": "↑", "DPAD_DOWN": "↓", "DPAD_LEFT": "←", "DPAD_RIGHT": "→"}
 
 
+def app_icon():
+    """Icono de la app (assets/icon.png, generado con tools/make_icon.py)."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    path = os.path.join(base, "assets", "icon.png")
+    return QIcon(path) if os.path.exists(path) else make_icon("#e60012")
+
+
 def make_icon(accent="#0067c0", size=256):
     pm = QPixmap(size, size)
     pm.fill(Qt.transparent)
@@ -580,8 +587,8 @@ class MainWindow(QMainWindow):
         self.motion_view.accent = QColor(accent)
         self.motion_view.fg = QColor(fg)
         self.motion_view.track = QColor(255, 255, 255, 30) if dark else QColor(0, 0, 0, 25)
-        self.logo.setPixmap(make_icon(accent).pixmap(QSize(44, 44)))
-        self.setWindowIcon(make_icon(accent))
+        self.logo.setPixmap(app_icon().pixmap(QSize(48, 48)))
+        self.setWindowIcon(app_icon())
         self._render_status()
 
     # ------------------------------------------------------------------ texts
@@ -887,7 +894,7 @@ class MainWindow(QMainWindow):
     def _build_tray(self):
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
-        self.tray = QSystemTrayIcon(make_icon("#e60012"), self)
+        self.tray = QSystemTrayIcon(app_icon(), self)
         menu = QMenu()
         self.act_show = menu.addAction("", self.show_window)
         menu.addSeparator()

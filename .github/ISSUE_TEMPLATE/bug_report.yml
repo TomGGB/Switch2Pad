@@ -1,0 +1,40 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Switch2Pad version
+      placeholder: "2.3.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows 11, Windows 10, Linux]
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Emulated controller
+      options: [Xbox 360, PS4 / DualShock 4]
+  - type: input
+    id: game
+    attributes:
+      label: Game / emulator
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect and what happened instead? Steps to reproduce help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Console output
+      description: Output of `Switch2Pad --cli` if it is a connection problem.
+      render: text
