@@ -4,8 +4,10 @@ Usa el mando de **Nintendo Switch 2** conectado por **USB** como un mando de **X
 **PS4 (DualShock 4)** en **Windows** y **Linux**. En modo PS4 también se envían el giroscopio y el
 acelerómetro (sensor de movimiento).
 
-- **Mando en 3D en vivo**: modelo del Switch 2 Pro Controller (silueta trazada de una foto real) que
-  gira con el giroscopio del mando, ilumina los botones pulsados y se puede girar con el ratón.
+- **Mando en 3D en vivo** (OpenGL): modelo detallado del Pro Controller con la carcasa superior y
+  los gatillos en gris claro como el mando de Switch 2. Gira con el giroscopio del mando y con el
+  ratón; los botones pulsados se hunden y se iluminan y los sticks se inclinan. C, GL y GR (que el
+  modelo no tiene) se muestran como indicadores. Sin OpenGL se usa un modelo simplificado.
 - Remapeo de todos los botones, vibración, zona muerta y distribución A/B/X/Y por posición o por letra.
 - **Touchpad del DualShock 4 con gestos de uno y dos dedos** (modo PS4). Mantén el botón del touchpad
   (Captura por defecto) y:
@@ -32,8 +34,8 @@ acelerómetro (sensor de movimiento).
 ## Linux
 
 ```sh
-tar -xzf Switch2Pad-2.2.1-linux-x86_64.tar.gz
-cd Switch2Pad-2.2.1-linux-x86_64
+tar -xzf Switch2Pad-2.3.0-linux-x86_64.tar.gz
+cd Switch2Pad-2.3.0-linux-x86_64
 ./install.sh          # instala en ~/.local y, con sudo, las reglas udev
 ```
 
@@ -86,3 +88,10 @@ Modo sin interfaz: `Switch2Pad --cli [--emulate xbox|ps4]`. Arrancar en la bande
 - Joy-Con 2: todavía no.
 
 Protocolo basado en el driver Switch 2 de SDL (`SDL_hidapi_switch2.c`).
+
+## Modelo 3D
+
+`assets/pro_controller.npz` se genera con `python tools/convert_model.py modelo.obj` a partir del modelo
+OBJ "Vallarta_Christopher_HW2_Controller" (Blender). El conversor separa cada botón de la malla para
+poder iluminarlo y moverlo. El OBJ original no se incluye en el repositorio; antes de publicar el
+proyecto, confirma que la licencia del modelo permite redistribuirlo.

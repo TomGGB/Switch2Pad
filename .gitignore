@@ -7,3 +7,7 @@ config.json
 
 # Fotos de referencia del mando (no se distribuyen)
 assets/*.avif
+
+# Modelo 3D original (licencia desconocida); la app usa assets/pro_controller.npz
+assets/*.obj
+assets/*.mtl

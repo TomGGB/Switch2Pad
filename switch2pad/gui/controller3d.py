@@ -6,6 +6,8 @@
 * El modelo gira siguiendo el giroscopio del mando real (y vuelve solo a la posicion de
   reposo); tambien se puede girar arrastrando con el raton.
 * En modo PS4 se superpone el touchpad con los dedos virtuales.
+* Si hay OpenGL se dibuja el modelo detallado de assets/pro_controller.npz (convertido del
+  OBJ con tools/convert_model.py); si no, un modelo simplificado por software.
 
 Ejes del modelo (los mismos que SDL/DS4): X a la derecha, Y hacia arriba, Z hacia el
 jugador (sale de la cara frontal)."""
@@ -20,6 +22,7 @@ from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPainterPath, QPen, Q
 from PySide6.QtWidgets import QWidget
 
 from ..touch import PAD_H, PAD_W
+from . import gl_renderer
 
 # --- Geometria -----------------------------------------------------------------------
 
@@ -331,6 +334,9 @@ class Controller3DView(QWidget):
         super().__init__(parent)
         self.setMinimumSize(380, 260)
         self.setMouseTracking(False)
+        self.model = gl_renderer.load_model()
+        self.gl = None
+        self._gl_tried = False
         self.mesh = build_mesh()
         self.V = np.array(self.mesh.V)
         self.N = np.array(self.mesh.normals)
@@ -445,7 +451,156 @@ class Controller3DView(QWidget):
                     V[lo:hi, 1] -= 3
         return V
 
-    def paintEvent(self, _e):
+    def _rotation(self):
+        return _rot_x(self.BASE_PITCH + self.view_pitch) @ _rot_y(self.view_yaw) @ _qmat(self.q)
+
+    def paintEvent(self, e):
+        if not self._gl_tried:
+            self._gl_tried = True
+            self.gl = gl_renderer.GLRenderer.create(self.model)
+        if self.gl is not None:
+            return self._paint_gl()
+        return self._paint_software(e)
+
+    # --- modelo detallado (OpenGL) -------------------------------------------------
+    GL_COLORS = {
+        "BODY": (0.205, 0.21, 0.225, 0.30), "SHELL": (0.80, 0.805, 0.82, 0.55),
+        "LSTICK": (0.17, 0.175, 0.19, 0.35), "RSTICK": (0.17, 0.175, 0.19, 0.35),
+        "LSTICK_BASE": (0.205, 0.21, 0.225, 0.30), "RSTICK_BASE": (0.205, 0.21, 0.225, 0.30),
+        # brillo negativo = usar la mezcla suave cuerpo/carcasa (borde sin dientes)
+        "L": (0.86, 0.865, 0.88, -1.0), "R": (0.86, 0.865, 0.88, -1.0),
+        "ZL": (0.80, 0.805, 0.82, -1.0), "ZR": (0.80, 0.805, 0.82, -1.0),
+    }
+    GL_BUTTON = (0.14, 0.145, 0.16, 0.45)
+    LABELS = {"A": "A", "B": "B", "X": "X", "Y": "Y", "MINUS": "−", "PLUS": "+",
+              "HOME": "home", "CAPTURE": "capture"}
+
+    def _gl_matrices(self, w, h):
+        R = self._rotation()
+        M = np.eye(4)
+        M[:3, :3] = R
+        T = np.eye(4)
+        T[2, 3] = -10.2 / self.zoom
+        f = 1 / math.tan(math.radians(30) / 2)
+        near, far = 1.0, 60.0
+        P = np.array([[f * h / w, 0, 0, 0], [0, f, 0, 0],
+                      [0, 0, (far + near) / (near - far), 2 * far * near / (near - far)], [0, 0, -1, 0]])
+        return P @ T @ M, R
+
+    def _paint_gl(self):
+        w, h = self.width(), self.height()
+        hud_h = min(74.0, h * 0.2) if self.mode == "ps4" else 0.0
+        h3 = max(10, int(h - hud_h))
+        dpr = self.devicePixelRatioF()
+        mvp, R = self._gl_matrices(w, h3)
+        parts = [str(x) for x in self.model["parts"]]
+        colors = np.zeros((gl_renderer.MAX_PARTS, 4), np.float32)
+        offsets = np.zeros((gl_renderer.MAX_PARTS, 3), np.float32)
+        acc = (self.accent.redF(), self.accent.greenF(), self.accent.blueF(), 0.6)
+        s = self.state
+        for i, name in enumerate(parts):
+            colors[i] = self.GL_COLORS.get(name, self.GL_BUTTON)
+            pressed = bool(s and s.buttons.get(name))
+            if pressed and not name.endswith("_BASE"):
+                colors[i] = acc
+            if s is None:
+                continue
+            if name in ("LSTICK", "RSTICK"):
+                x, y = (s.lx, s.ly) if name == "LSTICK" else (s.rx, s.ry)
+                offsets[i] = (x * 0.13, y * 0.13, -0.06 if pressed else 0.0)
+            elif name in ("L", "R", "ZL", "ZR"):
+                offsets[i] = (0, -0.05 if pressed else 0.0, 0)
+            elif pressed:
+                offsets[i] = (0, 0, -0.035)
+        img = self.gl.render(int(w * dpr), int(h3 * dpr), mvp, R, colors, offsets, LIGHT, FILL)
+
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        cx = w / 2
+        sh = QRadialGradient(QPointF(cx, h3 * 0.86), w * 0.36)
+        sh.setColorAt(0, QColor(0, 0, 0, 80 if self.dark else 45))
+        sh.setColorAt(1, QColor(0, 0, 0, 0))
+        p.setPen(Qt.NoPen)
+        p.setBrush(sh)
+        p.drawEllipse(QPointF(cx, h3 * 0.86), w * 0.36, h3 * 0.06)
+        if img is not None:
+            img.setDevicePixelRatio(dpr)
+            p.setOpacity(1.0 if self.connected else 0.5)
+            p.drawImage(0, 0, img)
+            p.setOpacity(1.0)
+            if R[2] @ np.array([0, 0, 1.0]) > 0.15:  # cara frontal visible
+                self._gl_labels(p, mvp, parts, w, h3)
+        self._extra_buttons(p, w, h3)
+        if self.mode == "ps4":
+            self._draw_touchpad(p, QRectF(w / 2 - hud_h * 1.05, h - hud_h + 4, hud_h * 2.1, hud_h - 10))
+        self._draw_hint(p, w)
+        p.end()
+
+    def _project(self, mvp, v, w, h):
+        c = mvp @ np.array([v[0], v[1], v[2], 1.0])
+        return QPointF((c[0] / c[3] + 1) / 2 * w, (1 - c[1] / c[3]) / 2 * h)
+
+    def _gl_labels(self, p, mvp, parts, w, h):
+        anchors = self.model["anchors"]
+        s = self.state
+        for name, label in self.LABELS.items():
+            if name not in parts:
+                continue
+            i = parts.index(name)
+            v = anchors[i].astype(float).copy()
+            pressed = bool(s and s.buttons.get(name))
+            v[2] += -0.035 + 0.004 if pressed else 0.004
+            pt = self._project(mvp, v, w, h)
+            # tamano de letra proporcional al tamano en pantalla del boton
+            size = abs(self._project(mvp, v + (0.12, 0, 0), w, h).x() - pt.x())
+            color = QColor(255, 255, 255) if pressed else QColor(165, 167, 174)
+            if label == "home":
+                k = size * 0.55
+                p.setPen(QPen(color, max(1.0, size * 0.09)))
+                p.setBrush(Qt.NoBrush)
+                roof = QPainterPath(pt + QPointF(-k, 0))
+                roof.lineTo(pt + QPointF(0, -k))
+                roof.lineTo(pt + QPointF(k, 0))
+                p.drawPath(roof)
+                p.drawRect(QRectF(pt.x() - k * 0.6, pt.y(), k * 1.2, k * 0.8))
+            elif label == "capture":
+                p.setPen(QPen(color, max(1.0, size * 0.08)))
+                p.setBrush(Qt.NoBrush)
+                p.drawEllipse(pt, size * 0.32, size * 0.32)
+            else:
+                f = QFont(self.font())
+                f.setPixelSize(max(7, int(size * (1.25 if len(label) == 1 and label.isalpha() else 1.4))))
+                f.setBold(True)
+                p.setFont(f)
+                p.setPen(color)
+                p.drawText(QRectF(pt.x() - size * 2, pt.y() - size * 2, size * 4, size * 4), Qt.AlignCenter, label)
+
+    def _extra_buttons(self, p, w, h):
+        """C, GL y GR (exclusivos del mando de Switch 2) no estan en el modelo: indicadores."""
+        s = self.state
+        f = QFont(self.font())
+        f.setPointSizeF(8)
+        f.setBold(True)
+        p.setFont(f)
+        for i, name in enumerate(("GL", "C", "GR")):
+            pressed = bool(s and s.buttons.get(name))
+            rect = QRectF(10 + i * 46, h - 30, 40, 22)
+            p.setPen(QPen(self.accent if pressed else QColor(140, 142, 150, 150), 1.2))
+            p.setBrush(self.accent if pressed else QColor(30, 31, 34, 150))
+            p.drawRoundedRect(rect, 11, 11)
+            p.setPen(QColor(255, 255, 255) if pressed else QColor(170, 172, 180))
+            p.drawText(rect, Qt.AlignCenter, name)
+
+    def _draw_hint(self, p, w):
+        if self.hint:
+            f2 = QFont(self.font())
+            f2.setPointSizeF(8)
+            p.setFont(f2)
+            p.setPen(QColor(255, 255, 255, 110) if self.dark else QColor(0, 0, 0, 110))
+            p.drawText(QRectF(6, 4, w - 12, 16), Qt.AlignRight | Qt.AlignTop, self.hint)
+
+    # --- modelo simplificado (software) ---------------------------------------------
+    def _paint_software(self, _e):
         w, h = self.width(), self.height()
         hud_h = min(74.0, h * 0.2) if self.mode == "ps4" else 0.0
         out = QPainter(self)

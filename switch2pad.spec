@@ -12,7 +12,7 @@ IS_WIN = sys.platform == "win32"
 import compileall
 if not compileall.compile_dir("switch2pad", quiet=1):
     raise SystemExit("switch2pad tiene errores de sintaxis; corrigelos antes de compilar")
-datas, binaries, hiddenimports = [], [], ["hid", "usb.backend.libusb1"]
+datas, binaries, hiddenimports = [("assets/pro_controller.npz", "assets")], [], ["hid", "usb.backend.libusb1"]
 
 b = collect_dynamic_libs("libusb_package")
 binaries += b
@@ -24,7 +24,7 @@ else:
     hiddenimports += ["evdev", "evdev.ecodes", "evdev.ff"]
 
 QT_EXCLUDES = ["PySide6.QtQml", "PySide6.QtQuick", "PySide6.QtQuickWidgets", "PySide6.QtPdf",
-               "PySide6.QtSvg", "PySide6.QtOpenGL", "PySide6.QtOpenGLWidgets", "PySide6.QtSql",
+               "PySide6.QtSvg", "PySide6.QtOpenGLWidgets", "PySide6.QtSql",
                "PySide6.QtTest", "PySide6.QtXml", "PySide6.QtConcurrent", "PySide6.QtDBus",
                "PySide6.QtPrintSupport", "PySide6.QtDesigner", "PySide6.QtHelp", "PySide6.QtUiTools",
                "tkinter", "PIL"]
