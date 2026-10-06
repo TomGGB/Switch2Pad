@@ -24,6 +24,9 @@ Windows やほとんどのゲームは USB 接続の Switch 2 Pro コントロ�
 - 🎮 **Xbox 360 / PS4 モード**：プレイ中でもいつでも切り替え可能。
 - 🌀 **ジャイロと加速度センサー**（PS4 モード）：DS4 のモーションに対応したゲームやエミュレーターでジャイロ操作。
 - ✌️ **2本指にも対応したタッチパッドジェスチャー**：キャプチャーボタンを押している間、スティックが指になります。十字ボタンでスワイプ、L3/R3 で左右をクリック。
+- 🎯 **どのゲームでもジャイロエイム**：Xbox モードでも、コントローラーを動かしてマウスや右スティックを操作。
+- 🗂️ **ゲーム別プロファイル**：前面のゲームに合わせて自動で切り替え。
+- ⌨️ **C ボタンのショートカット**、ボタンごとの**連射**、**振動の強さ**、スティックの**反応カーブ**。
 - 📳 ゲームからコントローラーへの**振動**。
 - 🧊 本物のコントローラーのジャイロに合わせて動き、押したボタンが光る **3D コントローラー表示**。
 - 🚫 **Steam より優先**：ワンクリックで Steam によるコントローラーの横取りや割り当て変更を防止。
@@ -53,6 +56,8 @@ Windows やほとんどのゲームは USB 接続の Switch 2 Pro コントロ�
 | <img src="screenshots/touchpad.png" alt=""> | <img src="screenshots/buttons.png" alt=""> |
 | **Steam より優先** | **ライトテーマ · Xbox モード** |
 | <img src="screenshots/steam.png" alt=""> | <img src="screenshots/light-xbox.png" alt=""> |
+| 🎯 | 🗂️ |
+| <img src="screenshots/motion.png" alt=""> | <img src="screenshots/profiles.png" alt=""> |
 | **日本語 UI** | **システムトレイ** |
 | <img src="screenshots/japanese.png" alt=""> | <img src="screenshots/tray.png" width="260" alt=""> |
 
@@ -103,6 +108,8 @@ sh build_linux.sh                           # Linux   -> dist/Switch2Pad-<versio
 ## コントリビュート
 
 Issue、アイデア、翻訳、プルリクエストを歓迎します。[CONTRIBUTING.md](../CONTRIBUTING.md) をご覧ください。Switch2Pad が役に立ったら、**⭐ を付けると他の人が見つけやすくなります。**
+
+ライセンス：[MIT](../LICENSE) © Tomás González。コントローラーの 3D モデルは作者によるものです。
 
 ---
 

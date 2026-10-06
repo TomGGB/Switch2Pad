@@ -24,6 +24,9 @@ Windows 和大多数游戏无法识别通过 USB 连接的 Switch 2 Pro 手柄�
 - 🎮 **Xbox 360 或 PS4 模式**：随时切换，游戏中也可以。
 - 🌀 **陀螺仪和加速度计**（PS4 模式）：在支持 DS4 体感的游戏和模拟器中使用体感瞄准。
 - ✌️ **触控板手势，支持双指**：按住*截图键*，摇杆就变成手指；十字键快速滑动，L3/R3 点击触控板左/右侧。
+- 🎯 **任何游戏都能体感瞄准**：移动手柄即可控制鼠标或右摇杆，Xbox 模式也可用。
+- 🗂️ **按游戏的配置文件**，根据前台游戏自动切换。
+- ⌨️ **C 键快捷键**、按键**连发**、**震动强度**和摇杆**响应曲线**。
 - 📳 游戏发出的**震动**会传到手柄。
 - 🧊 **实时 3D 手柄**，跟随真实手柄的陀螺仪转动并点亮按下的按键。
 - 🚫 **优先于 Steam**：一键阻止 Steam 接管和重新映射手柄。
@@ -53,6 +56,8 @@ Windows 和大多数游戏无法识别通过 USB 连接的 Switch 2 Pro 手柄�
 | <img src="screenshots/touchpad.png" alt=""> | <img src="screenshots/buttons.png" alt=""> |
 | **优先于 Steam** | **浅色主题 · Xbox 模式** |
 | <img src="screenshots/steam.png" alt=""> | <img src="screenshots/light-xbox.png" alt=""> |
+| 🎯 | 🗂️ |
+| <img src="screenshots/motion.png" alt=""> | <img src="screenshots/profiles.png" alt=""> |
 | **多语言界面（日本語）** | **系统托盘** |
 | <img src="screenshots/japanese.png" alt=""> | <img src="screenshots/tray.png" width="260" alt=""> |
 
@@ -103,6 +108,8 @@ sh build_linux.sh                           # Linux   -> dist/Switch2Pad-<versio
 ## 参与贡献
 
 欢迎提交 Issue、想法、翻译和 Pull Request，详见 [CONTRIBUTING.md](../CONTRIBUTING.md)。如果 Switch2Pad 对你有帮助，**点个 ⭐ 能让更多人找到它。**
+
+许可证：[MIT](../LICENSE) © Tomás González。手柄 3D 模型由作者制作。
 
 ---
 

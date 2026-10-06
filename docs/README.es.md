@@ -24,6 +24,9 @@ Windows y la mayoría de los juegos no entienden el mando Pro de Switch 2 por US
 - 🎮 **Modo Xbox 360 o PS4**: cámbialo cuando quieras, incluso jugando.
 - 🌀 **Giroscopio y acelerómetro** (modo PS4): apuntado por movimiento en juegos y emuladores compatibles con el DS4.
 - ✌️ **Gestos de touchpad, también con dos dedos**: mantén *Captura* y los sticks pasan a ser dedos; la cruceta hace deslizamientos rápidos y L3/R3 pulsan el lado izquierdo/derecho.
+- 🎯 **Apuntar con el giroscopio en cualquier juego**: mueve el ratón o el stick derecho moviendo el mando, también en modo Xbox.
+- 🗂️ **Perfiles por juego** que cambian solos con el juego en primer plano.
+- ⌨️ **Atajos con el botón C**, **turbo** por botón, **intensidad de vibración** y **curvas de respuesta** de los sticks.
 - 📳 **Vibración** que el juego envía al mando.
 - 🧊 **Mando en 3D en vivo** que sigue el giroscopio del mando real e ilumina los botones pulsados.
 - 🚫 **Prioridad sobre Steam**: con un clic Steam deja de tomar y remapear el mando.
@@ -53,6 +56,8 @@ Windows y la mayoría de los juegos no entienden el mando Pro de Switch 2 por US
 | <img src="screenshots/touchpad.png" alt=""> | <img src="screenshots/buttons.png" alt=""> |
 | **Prioridad sobre Steam** | **Tema claro · modo Xbox** |
 | <img src="screenshots/steam.png" alt=""> | <img src="screenshots/light-xbox.png" alt=""> |
+| 🎯 | 🗂️ |
+| <img src="screenshots/motion.png" alt=""> | <img src="screenshots/profiles.png" alt=""> |
 | **Interfaz traducida (日本語)** | **Bandeja del sistema** |
 | <img src="screenshots/japanese.png" alt=""> | <img src="screenshots/tray.png" width="260" alt=""> |
 
@@ -103,6 +108,8 @@ sh build_linux.sh                           # Linux   -> dist/Switch2Pad-<versio
 ## Contribuir
 
 Los issues, ideas, traducciones y pull requests son bienvenidos: consulta [CONTRIBUTING.md](../CONTRIBUTING.md). Si Switch2Pad te sirve, **una ⭐ ayuda a que otras personas lo encuentren.**
+
+Licencia [MIT](../LICENSE) © Tomás González. El modelo 3D del mando es obra del autor.
 
 ---
 

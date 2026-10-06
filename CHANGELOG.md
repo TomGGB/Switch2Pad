@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.0
+- Gyro aiming in any game: move the mouse or the right stick by moving the controller (Xbox and PS4 modes).
+- Per-game profiles that switch automatically with the game in the foreground.
+- C-button shortcuts: switch Xbox/PS4, pause gyro, rumble strength, previous/next profile.
+- Turbo per button, rumble strength, stick response curves and axis inversion.
+- Update notifications, log file and automated tests.
+- MIT license.
+
 ## 2.3.1
 - New flat app icon.
 - Translated READMEs (8 languages), screenshots, issue templates.

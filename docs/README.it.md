@@ -24,6 +24,9 @@ Windows e la maggior parte dei giochi non riconoscono il Pro Controller di Switc
 - 🎮 **Modalità Xbox 360 o PS4**: cambiala quando vuoi, anche durante il gioco.
 - 🌀 **Giroscopio e accelerometro** (modalità PS4): mira con il movimento in giochi ed emulatori compatibili con il DS4.
 - ✌️ **Gesti del touchpad, anche a due dita**: tieni premuto *Acquisizione* e gli stick diventano dita; la croce fa scorrimenti rapidi e L3/R3 cliccano a sinistra/destra.
+- 🎯 **Mira con il giroscopio in qualsiasi gioco**: muovi il mouse o lo stick destro muovendo il controller, anche in modalità Xbox.
+- 🗂️ **Profili per gioco** che cambiano da soli in base al gioco in primo piano.
+- ⌨️ **Scorciatoie con il pulsante C**, **turbo** per pulsante, **intensità della vibrazione** e **curve di risposta** degli stick.
 - 📳 **Vibrazione** inviata dal gioco al controller.
 - 🧊 **Controller 3D in tempo reale** che segue il giroscopio del controller vero e illumina i pulsanti premuti.
 - 🚫 **Priorità su Steam**: con un clic Steam smette di prendere e rimappare il controller.
@@ -53,6 +56,8 @@ Windows e la maggior parte dei giochi non riconoscono il Pro Controller di Switc
 | <img src="screenshots/touchpad.png" alt=""> | <img src="screenshots/buttons.png" alt=""> |
 | **Priorità su Steam** | **Tema chiaro · modalità Xbox** |
 | <img src="screenshots/steam.png" alt=""> | <img src="screenshots/light-xbox.png" alt=""> |
+| 🎯 | 🗂️ |
+| <img src="screenshots/motion.png" alt=""> | <img src="screenshots/profiles.png" alt=""> |
 | **Interfaccia tradotta (日本語)** | **Area di notifica** |
 | <img src="screenshots/japanese.png" alt=""> | <img src="screenshots/tray.png" width="260" alt=""> |
 
@@ -103,6 +108,8 @@ sh build_linux.sh                           # Linux   -> dist/Switch2Pad-<versio
 ## Contribuire
 
 Issue, idee, traduzioni e pull request sono benvenuti: vedi [CONTRIBUTING.md](../CONTRIBUTING.md). Se Switch2Pad ti è utile, **una ⭐ aiuta altre persone a trovarlo.**
+
+Licenza [MIT](../LICENSE) © Tomás González. Il modello 3D del controller è opera dell'autore.
 
 ---
 

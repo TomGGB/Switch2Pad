@@ -24,6 +24,9 @@ O Windows e a maioria dos jogos não entendem o Pro Controller do Switch 2 via U
 - 🎮 **Modo Xbox 360 ou PS4**: troque quando quiser, até durante o jogo.
 - 🌀 **Giroscópio e acelerômetro** (modo PS4): mira por movimento em jogos e emuladores compatíveis com o DS4.
 - ✌️ **Gestos de touchpad, inclusive com dois dedos**: segure *Captura* e os analógicos viram dedos; o direcional faz deslizes rápidos e L3/R3 clicam no lado esquerdo/direito.
+- 🎯 **Mira com giroscópio em qualquer jogo**: mova o mouse ou o analógico direito movendo o controle, até no modo Xbox.
+- 🗂️ **Perfis por jogo** que trocam sozinhos conforme o jogo em primeiro plano.
+- ⌨️ **Atalhos com o botão C**, **turbo** por botão, **intensidade da vibração** e **curvas de resposta** dos analógicos.
 - 📳 **Vibração** enviada do jogo para o controle.
 - 🧊 **Controle em 3D ao vivo** que segue o giroscópio do controle real e acende os botões pressionados.
 - 🚫 **Prioridade sobre a Steam**: com um clique a Steam para de tomar e remapear o controle.
@@ -53,6 +56,8 @@ O Windows e a maioria dos jogos não entendem o Pro Controller do Switch 2 via U
 | <img src="screenshots/touchpad.png" alt=""> | <img src="screenshots/buttons.png" alt=""> |
 | **Prioridade sobre a Steam** | **Tema claro · modo Xbox** |
 | <img src="screenshots/steam.png" alt=""> | <img src="screenshots/light-xbox.png" alt=""> |
+| 🎯 | 🗂️ |
+| <img src="screenshots/motion.png" alt=""> | <img src="screenshots/profiles.png" alt=""> |
 | **Interface traduzida (日本語)** | **Bandeja do sistema** |
 | <img src="screenshots/japanese.png" alt=""> | <img src="screenshots/tray.png" width="260" alt=""> |
 
@@ -103,6 +108,8 @@ sh build_linux.sh                           # Linux   -> dist/Switch2Pad-<versio
 ## Contribuir
 
 Issues, ideias, traduções e pull requests são bem-vindos: veja [CONTRIBUTING.md](../CONTRIBUTING.md). Se o Switch2Pad te ajudou, **uma ⭐ ajuda outras pessoas a encontrá-lo.**
+
+Licença [MIT](../LICENSE) © Tomás González. O modelo 3D do controle foi feito pelo autor.
 
 ---
 

@@ -24,6 +24,9 @@ Windows und die meisten Spiele verstehen den Switch 2 Pro Controller per USB nic
 - 🎮 **Xbox-360- oder PS4-Modus** – jederzeit umschaltbar, sogar im Spiel.
 - 🌀 **Gyroskop und Beschleunigungssensor** (PS4-Modus) – Bewegungssteuerung in Spielen und Emulatoren mit DS4-Unterstützung.
 - ✌️ **Touchpad-Gesten, auch mit zwei Fingern** – halte *Aufnahme* gedrückt und die Sticks werden zu Fingern; das Steuerkreuz wischt schnell, L3/R3 klicken links/rechts.
+- 🎯 **Gyro-Zielen in jedem Spiel** – bewege Maus oder rechten Stick durch Bewegen des Controllers, auch im Xbox-Modus.
+- 🗂️ **Profile pro Spiel**, die automatisch mit dem Spiel im Vordergrund wechseln.
+- ⌨️ **Kurzbefehle mit der C-Taste**, **Turbo** pro Taste, **Vibrationsstärke** und **Stick-Kurven**.
 - 📳 **Vibration** vom Spiel an den Controller.
 - 🧊 **Live-3D-Controller**, der dem Gyroskop des echten Controllers folgt und gedrückte Tasten hervorhebt.
 - 🚫 **Vorrang vor Steam** – mit einem Klick übernimmt Steam den Controller nicht mehr.
@@ -53,6 +56,8 @@ Windows und die meisten Spiele verstehen den Switch 2 Pro Controller per USB nic
 | <img src="screenshots/touchpad.png" alt=""> | <img src="screenshots/buttons.png" alt=""> |
 | **Vorrang vor Steam** | **Helles Design · Xbox-Modus** |
 | <img src="screenshots/steam.png" alt=""> | <img src="screenshots/light-xbox.png" alt=""> |
+| 🎯 | 🗂️ |
+| <img src="screenshots/motion.png" alt=""> | <img src="screenshots/profiles.png" alt=""> |
 | **Übersetzte Oberfläche (日本語)** | **Infobereich** |
 | <img src="screenshots/japanese.png" alt=""> | <img src="screenshots/tray.png" width="260" alt=""> |
 
@@ -103,6 +108,8 @@ sh build_linux.sh                           # Linux   -> dist/Switch2Pad-<versio
 ## Mitmachen
 
 Issues, Ideen, Übersetzungen und Pull Requests sind willkommen – siehe [CONTRIBUTING.md](../CONTRIBUTING.md). Wenn dir Switch2Pad hilft, **hilft ein ⭐ anderen, es zu finden.**
+
+Lizenz [MIT](../LICENSE) © Tomás González. Das 3D-Modell des Controllers stammt vom Autor.
 
 ---
 

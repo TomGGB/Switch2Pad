@@ -1,20 +1,21 @@
 """Ventana principal de Switch2Pad (PySide6)."""
 
+import json
 import math
 import os
-import subprocess
 import sys
 import threading
 
-from PySide6.QtCore import QObject, QRectF, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import (QActionGroup, QColor, QFont, QIcon, QPainter, QPainterPath, QPalette,
-                           QPen, QPixmap)
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
-                               QHBoxLayout, QLabel, QMainWindow, QMenu, QPushButton, QRadioButton,
+from PySide6.QtCore import QObject, QRectF, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import (QActionGroup, QColor, QDesktopServices, QFont, QIcon, QPainter, QPainterPath,
+                           QPalette, QPen, QPixmap)
+from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout,
+                               QHBoxLayout, QInputDialog, QLabel, QListWidget, QMainWindow, QMenu,
+                               QPushButton, QRadioButton,
                                QScrollArea, QSizePolicy, QSlider, QStackedWidget, QSystemTrayIcon,
                                QVBoxLayout, QWidget)
 
-from .. import __version__, autostart, steam
+from .. import __version__, autostart, foreground, steam, updates
 from .. import config as config_mod
 from ..bridge import Bridge
 from ..i18n import LANGUAGES, Translator
@@ -67,6 +68,7 @@ class _Signals(QObject):
     status = Signal(str, dict)
     steam_progress = Signal(str)
     steam_finished = Signal(bool, str)
+    update = Signal(str, str)
 
 
 class Card(QFrame):
@@ -190,34 +192,45 @@ class MotionView(QWidget):
 
 
 class MainWindow(QMainWindow):
+    # Globales: no dependen del perfil
+    GLOBAL_KEYS = ("language", "theme", "steam_hide_virtual", "close_to_tray", "autostart", "hotkeys",
+                   "check_updates", "profile_auto")
+    TAB_KEYS = ("tab_general", "tab_buttons", "tab_motion", "tab_profiles", "tab_steam")
+    STEAM_TAB = 4
+
     def __init__(self, app):
         super().__init__()
         self.app = app
-        self.cfg = config_mod.load_config()
-        lang = self.cfg.get("language") or config_mod.system_language()
-        self.t = Translator(lang)
         self.signals = _Signals()
         self.signals.status.connect(self._on_status)
         self.signals.steam_progress.connect(self._on_steam_progress)
         self.signals.steam_finished.connect(self._on_steam_finished)
+        self.signals.update.connect(self._on_update_found)
         self.latest = None
         self._status = ("starting", {})
         self._steam_busy = False
         self.mica = False
         self._quitting = False
         self._last_notified = None
+        self._loading = False
+        self._flash_text = None
         self.tray = None
 
         self.bridge = Bridge(on_status=lambda code, **p: self.signals.status.emit(code, p),
                              on_state=self._on_state)
-        self.cfg = self.bridge.cfg
+        self.base = self.bridge.base
+        self.editing = ""                      # perfil que se edita ("" = predeterminado)
+        self.cfg = config_mod.effective_config(self.base, self.editing)
+        lang = self.base.get("language") or config_mod.system_language()
+        self.t = Translator(lang)
         self.targets = dict(config_mod.build_mapping(self.cfg))
 
         self.setWindowTitle("Switch2Pad")
-        self.resize(1140, 760)
-        self.setMinimumSize(960, 640)
+        self.resize(1160, 780)
+        self.setMinimumSize(980, 660)
         self._build()
         self._build_tray()
+        self._load_widgets()
         self._apply_theme()
         self.retranslate()
         self._refresh_steam()
@@ -229,6 +242,8 @@ class MainWindow(QMainWindow):
         self.steam_timer = QTimer(self, interval=5000, timeout=self._refresh_steam)
         self.steam_timer.start()
         app.styleHints().colorSchemeChanged.connect(lambda _: self._apply_theme())
+        if self.base.get("check_updates", True):
+            threading.Thread(target=self._check_updates, daemon=True).start()
 
     # ------------------------------------------------------------------ UI build
     def _build(self):
@@ -239,7 +254,6 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(24, 18, 24, 20)
         root.setSpacing(14)
 
-        # Cabecera
         header = QHBoxLayout()
         self.logo = QLabel()
         header.addWidget(self.logo)
@@ -253,6 +267,11 @@ class MainWindow(QMainWindow):
         titles.addWidget(self.subtitle_lbl)
         header.addLayout(titles)
         header.addStretch(1)
+        self.update_btn = QPushButton()
+        self.update_btn.setObjectName("accent")
+        self.update_btn.hide()
+        self.update_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(self._update_url)))
+        header.addWidget(self.update_btn)
         self.lang_lbl = QLabel()
         self.lang_lbl.setObjectName("secondary")
         self.lang_combo = QComboBox()
@@ -264,7 +283,6 @@ class MainWindow(QMainWindow):
         header.addWidget(self.lang_combo)
         root.addLayout(header)
 
-        # Barra de estado
         self.status_bar = QFrame()
         self.status_bar.setObjectName("statusBar")
         sb = QHBoxLayout(self.status_bar)
@@ -273,12 +291,15 @@ class MainWindow(QMainWindow):
         self.status_lbl = QLabel()
         self.status_lbl.setObjectName("statusText")
         self.status_lbl.setWordWrap(True)
+        self.profile_lbl = QLabel()
+        self.profile_lbl.setObjectName("secondary")
         self.status_action = QPushButton()
         self.status_action.setObjectName("accent")
         self.status_action.hide()
         self.status_action.clicked.connect(self._on_status_action)
         sb.addWidget(self.status_dot)
         sb.addWidget(self.status_lbl, 1)
+        sb.addWidget(self.profile_lbl)
         sb.addWidget(self.status_action)
         root.addWidget(self.status_bar)
 
@@ -286,7 +307,6 @@ class MainWindow(QMainWindow):
         content.setSpacing(16)
         root.addLayout(content, 1)
 
-        # Columna izquierda: mando + movimiento
         left = QVBoxLayout()
         left.setSpacing(14)
         self.live_card = Card("")
@@ -305,14 +325,22 @@ class MainWindow(QMainWindow):
         left.addWidget(self.motion_card, 1)
         content.addLayout(left, 11)
 
-        # Columna derecha: navegacion + paginas
         right = QVBoxLayout()
         right.setSpacing(10)
+        prow = QHBoxLayout()
+        self.editing_lbl = QLabel()
+        self.editing_lbl.setObjectName("secondary")
+        self.editing_combo = QComboBox()
+        self.editing_combo.setMinimumWidth(180)
+        self.editing_combo.activated.connect(self._on_editing_changed)
+        prow.addWidget(self.editing_lbl)
+        prow.addWidget(self.editing_combo, 1)
+        right.addLayout(prow)
         nav = QHBoxLayout()
-        nav.setSpacing(6)
+        nav.setSpacing(4)
         self.nav_group = QButtonGroup(self)
         self.nav_buttons = []
-        for i in range(3):
+        for i in range(len(self.TAB_KEYS)):
             b = QPushButton()
             b.setObjectName("navButton")
             b.setCheckable(True)
@@ -323,9 +351,9 @@ class MainWindow(QMainWindow):
         nav.addStretch(1)
         right.addLayout(nav)
         self.pages = QStackedWidget()
-        self.pages.addWidget(self._scroll(self._build_general()))
-        self.pages.addWidget(self._scroll(self._build_buttons()))
-        self.pages.addWidget(self._scroll(self._build_steam()))
+        for build in (self._build_general, self._build_buttons, self._build_motion,
+                      self._build_profiles, self._build_steam):
+            self.pages.addWidget(self._scroll(build()))
         self.nav_group.idClicked.connect(self.pages.setCurrentIndex)
         self.nav_buttons[0].setChecked(True)
         right.addWidget(self.pages, 1)
@@ -344,6 +372,41 @@ class MainWindow(QMainWindow):
         widget.setObjectName("page")
         return area
 
+    def _slider(self, lo, hi, fmt):
+        """Fila con etiqueta + slider + valor. Devuelve (layout, etiqueta, slider)."""
+        row = QHBoxLayout()
+        lbl = QLabel()
+        sl = QSlider(Qt.Horizontal)
+        sl.setRange(lo, hi)
+        val = QLabel()
+        val.setMinimumWidth(44)
+        sl.valueChanged.connect(lambda v: (val.setText(fmt(v)), self._save()))
+        row.addWidget(lbl)
+        row.addWidget(sl, 1)
+        row.addWidget(val)
+        sl._value_label, sl._fmt = val, fmt
+        return row, lbl, sl
+
+    @staticmethod
+    def _set_slider(sl, v):
+        sl.blockSignals(True)
+        sl.setValue(int(round(v)))
+        sl.blockSignals(False)
+        sl._value_label.setText(sl._fmt(sl.value()))
+
+    def _check(self, layout):
+        cb = QCheckBox()
+        cb.toggled.connect(lambda _: self._save())
+        layout.addWidget(cb)
+        return cb
+
+    def _combo(self, items):
+        c = QComboBox()
+        for code in items:
+            c.addItem("", code)
+        c.activated.connect(lambda _: self._save())
+        return c
+
     def _build_general(self):
         page = QWidget()
         lay = QVBoxLayout(page)
@@ -357,7 +420,6 @@ class MainWindow(QMainWindow):
         self.emu_ps4 = OptionCard()
         self.emu_group.addButton(self.emu_xbox)
         self.emu_group.addButton(self.emu_ps4)
-        (self.emu_ps4 if self.cfg["emulate"] == "ps4" else self.emu_xbox).setChecked(True)
         self.emu_group.buttonClicked.connect(lambda _: self._save())
         row.addWidget(self.emu_xbox)
         row.addWidget(self.emu_ps4)
@@ -367,34 +429,16 @@ class MainWindow(QMainWindow):
         self.layout_card = Card("")
         self.layout_pos = QRadioButton()
         self.layout_let = QRadioButton()
-        (self.layout_let if self.cfg["layout"] == "letras" else self.layout_pos).setChecked(True)
         for rb in (self.layout_pos, self.layout_let):
             rb.toggled.connect(lambda on: on and self._save())
             self.layout_card.lay.addWidget(rb)
         lay.addWidget(self.layout_card)
 
         self.opts_card = Card("")
-        self.rumble_cb = QCheckBox()
-        self.rumble_cb.setChecked(self.cfg.get("rumble", True))
-        self.rumble_cb.toggled.connect(lambda _: self._save())
-        self.motion_cb = QCheckBox()
-        self.motion_cb.setChecked(self.cfg.get("motion", True))
-        self.motion_cb.toggled.connect(lambda _: self._save())
-        self.opts_card.lay.addWidget(self.rumble_cb)
-        self.opts_card.lay.addWidget(self.motion_cb)
-        dz_row = QHBoxLayout()
-        self.dz_lbl = QLabel()
-        self.dz_slider = QSlider(Qt.Horizontal)
-        self.dz_slider.setRange(0, 30)
-        self.dz_slider.setValue(round(self.cfg.get("deadzone", 0.06) * 100))
-        self.dz_val = QLabel()
-        self.dz_val.setMinimumWidth(40)
-        self.dz_slider.valueChanged.connect(lambda v: (self.dz_val.setText(f"{v}%"), self._save()))
-        self.dz_val.setText(f"{self.dz_slider.value()}%")
-        dz_row.addWidget(self.dz_lbl)
-        dz_row.addWidget(self.dz_slider, 1)
-        dz_row.addWidget(self.dz_val)
-        self.opts_card.lay.addLayout(dz_row)
+        self.rumble_cb = self._check(self.opts_card.lay)
+        r, self.rumble_str_lbl, self.rumble_str = self._slider(0, 100, lambda v: f"{v}%")
+        self.opts_card.lay.addLayout(r)
+        self.motion_cb = self._check(self.opts_card.lay)
         bottom = QHBoxLayout()
         self.test_btn = QPushButton()
         self.test_btn.clicked.connect(lambda: self.bridge.test_rumble(0.4))
@@ -404,49 +448,88 @@ class MainWindow(QMainWindow):
         self.theme_combo = QComboBox()
         for code in ("system", "light", "dark"):
             self.theme_combo.addItem("", code)
-        self.theme_combo.setCurrentIndex(max(0, self.theme_combo.findData(self.cfg.get("theme", "system"))))
         self.theme_combo.currentIndexChanged.connect(lambda _: (self._save(), self._apply_theme()))
         bottom.addWidget(self.theme_lbl)
         bottom.addWidget(self.theme_combo)
         self.opts_card.lay.addLayout(bottom)
         lay.addWidget(self.opts_card)
 
+        self.sticks_card = Card("")
+        r, self.dz_lbl, self.dz_slider = self._slider(0, 30, lambda v: f"{v}%")
+        self.sticks_card.lay.addLayout(r)
+        crow = QHBoxLayout()
+        self.curve_lbl = QLabel()
+        self.curve_combo = self._combo(config_mod.STICK_CURVES)
+        crow.addWidget(self.curve_lbl)
+        crow.addWidget(self.curve_combo, 1)
+        self.sticks_card.lay.addLayout(crow)
+        self.invert_ly_cb = self._check(self.sticks_card.lay)
+        self.invert_ry_cb = self._check(self.sticks_card.lay)
+        lay.addWidget(self.sticks_card)
+
+        self.hotkeys_card = Card("")
+        self.hotkeys_cb = self._check(self.hotkeys_card.lay)
+        self.hotkeys_desc = QLabel()
+        self.hotkeys_desc.setObjectName("secondary")
+        self.hotkeys_desc.setWordWrap(True)
+        self.hotkeys_card.lay.addWidget(self.hotkeys_desc)
+        lay.addWidget(self.hotkeys_card)
+
+        self.bg_card = Card("")
+        self.tray_cb = self._check(self.bg_card.lay)
+        self.autostart_cb = QCheckBox()
+        self.autostart_cb.toggled.connect(self._on_autostart)
+        self.bg_card.lay.addWidget(self.autostart_cb)
+        self.updates_cb = self._check(self.bg_card.lay)
+        lrow = QHBoxLayout()
+        self.logs_btn = QPushButton()
+        self.logs_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(config_mod.config_dir())))
+        lrow.addWidget(self.logs_btn)
+        lrow.addStretch(1)
+        self.bg_card.lay.addLayout(lrow)
+        lay.addWidget(self.bg_card)
+        lay.addStretch(1)
+        return page
+
+    def _build_motion(self):
+        page = QWidget()
+        lay = QVBoxLayout(page)
+        lay.setContentsMargins(0, 0, 6, 0)
+        lay.setSpacing(12)
+
+        self.gyro_card = Card("")
+        self.gyro_desc = QLabel()
+        self.gyro_desc.setObjectName("secondary")
+        self.gyro_desc.setWordWrap(True)
+        self.gyro_card.lay.addWidget(self.gyro_desc)
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(10)
+        self.gyro_mode_lbl, self.gyro_act_lbl, self.gyro_btn_lbl, self.gyro_axis_lbl = (QLabel() for _ in range(4))
+        self.gyro_mode = self._combo(("off", "mouse", "rstick"))
+        self.gyro_act = self._combo(("hold", "toggle", "always"))
+        self.gyro_btn = self._combo(PHYSICAL_BUTTONS)
+        self.gyro_axis = self._combo(("yaw", "roll"))
+        for i, (lbl, w) in enumerate(((self.gyro_mode_lbl, self.gyro_mode), (self.gyro_act_lbl, self.gyro_act),
+                                      (self.gyro_btn_lbl, self.gyro_btn), (self.gyro_axis_lbl, self.gyro_axis))):
+            grid.addWidget(lbl, i, 0)
+            grid.addWidget(w, i, 1)
+        grid.setColumnStretch(1, 1)
+        self.gyro_card.lay.addLayout(grid)
+        r, self.gyro_sens_lbl, self.gyro_sens = self._slider(10, 400, lambda v: f"{v / 100:.1f}×")
+        self.gyro_card.lay.addLayout(r)
+        self.gyro_invert_cb = self._check(self.gyro_card.lay)
+        lay.addWidget(self.gyro_card)
+
         self.touch_card = Card("")
-        self.touch_sticks_cb = QCheckBox()
-        self.touch_sticks_cb.setChecked(self.cfg.get("touch_sticks", True))
-        self.touch_sticks_cb.toggled.connect(lambda _: self._save())
-        self.touch_cb = QCheckBox()
-        self.touch_cb.setChecked(self.cfg.get("touch_gyro", True))
-        self.touch_cb.toggled.connect(lambda _: self._save())
         self.touch_desc = QLabel()
         self.touch_desc.setObjectName("secondary")
         self.touch_desc.setWordWrap(True)
-        srow = QHBoxLayout()
-        self.touch_sens_lbl = QLabel()
-        self.touch_sens = QSlider(Qt.Horizontal)
-        self.touch_sens.setRange(5, 80)
-        self.touch_sens.setValue(int(self.cfg.get("touch_sensitivity", 25)))
-        self.touch_sens_val = QLabel(str(self.touch_sens.value()))
-        self.touch_sens_val.setMinimumWidth(40)
-        self.touch_sens.valueChanged.connect(lambda v: (self.touch_sens_val.setText(str(v)), self._save()))
-        srow.addWidget(self.touch_sens_lbl)
-        srow.addWidget(self.touch_sens, 1)
-        srow.addWidget(self.touch_sens_val)
-        for w in (self.touch_desc, self.touch_sticks_cb, self.touch_cb):
-            self.touch_card.lay.addWidget(w)
-        self.touch_card.lay.addLayout(srow)
+        self.touch_card.lay.addWidget(self.touch_desc)
+        self.touch_sticks_cb = self._check(self.touch_card.lay)
+        self.touch_cb = self._check(self.touch_card.lay)
+        r, self.touch_sens_lbl, self.touch_sens = self._slider(5, 80, str)
+        self.touch_card.lay.addLayout(r)
         lay.addWidget(self.touch_card)
-
-        self.bg_card = Card("")
-        self.tray_cb = QCheckBox()
-        self.tray_cb.setChecked(self.cfg.get("close_to_tray", True))
-        self.tray_cb.toggled.connect(lambda _: self._save())
-        self.autostart_cb = QCheckBox()
-        self.autostart_cb.setChecked(autostart.is_enabled())
-        self.autostart_cb.toggled.connect(self._on_autostart)
-        self.bg_card.lay.addWidget(self.tray_cb)
-        self.bg_card.lay.addWidget(self.autostart_cb)
-        lay.addWidget(self.bg_card)
         lay.addStretch(1)
         return page
 
@@ -457,24 +540,36 @@ class MainWindow(QMainWindow):
         self.map_card = Card("")
         self.map_note = QLabel()
         self.map_note.setObjectName("secondary")
+        self.map_note.setWordWrap(True)
         self.map_card.lay.addWidget(self.map_note)
         grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
+        grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(6)
-        self.map_labels, self.map_combos = {}, {}
+        self.map_labels, self.map_combos, self.turbo_checks = {}, {}, {}
+        self.turbo_headers = []
         half = (len(PHYSICAL_BUTTONS) + 1) // 2
+        for col in (0, 3):
+            h = QLabel()
+            h.setObjectName("secondary")
+            grid.addWidget(h, 0, col + 2)
+            self.turbo_headers.append(h)
         for i, name in enumerate(PHYSICAL_BUTTONS):
-            r, c = i % half, (i // half) * 2
+            r, c = i % half + 1, (i // half) * 3
             lbl = QLabel()
             combo = QComboBox()
-            combo.setMinimumWidth(120)
+            combo.setMinimumWidth(110)
             combo.activated.connect(lambda _, n=name: self._on_map_change(n))
+            turbo = QCheckBox()
+            turbo.toggled.connect(lambda _: self._save())
             grid.addWidget(lbl, r, c)
             grid.addWidget(combo, r, c + 1)
-            self.map_labels[name], self.map_combos[name] = lbl, combo
+            grid.addWidget(turbo, r, c + 2, Qt.AlignCenter)
+            self.map_labels[name], self.map_combos[name], self.turbo_checks[name] = lbl, combo, turbo
         grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(3, 1)
+        grid.setColumnStretch(4, 1)
         self.map_card.lay.addLayout(grid)
+        r, self.turbo_rate_lbl, self.turbo_rate = self._slider(4, 30, lambda v: f"{v}/s")
+        self.map_card.lay.addLayout(r)
         row = QHBoxLayout()
         self.restore_btn = QPushButton()
         self.restore_btn.clicked.connect(self._defaults)
@@ -482,6 +577,49 @@ class MainWindow(QMainWindow):
         row.addStretch(1)
         self.map_card.lay.addLayout(row)
         lay.addWidget(self.map_card)
+        lay.addStretch(1)
+        return page
+
+    def _build_profiles(self):
+        page = QWidget()
+        lay = QVBoxLayout(page)
+        lay.setContentsMargins(0, 0, 6, 0)
+        self.prof_card = Card("")
+        self.prof_desc = QLabel()
+        self.prof_desc.setObjectName("secondary")
+        self.prof_desc.setWordWrap(True)
+        self.prof_card.lay.addWidget(self.prof_desc)
+        self.prof_auto_cb = self._check(self.prof_card.lay)
+        self.prof_list = QListWidget()
+        self.prof_list.setMinimumHeight(110)
+        self.prof_list.currentRowChanged.connect(lambda _: self._refresh_profile_games())
+        self.prof_card.lay.addWidget(self.prof_list)
+        brow = QHBoxLayout()
+        self.prof_new_btn = QPushButton()
+        self.prof_new_btn.setObjectName("accent")
+        self.prof_new_btn.clicked.connect(self._new_profile)
+        self.prof_del_btn = QPushButton()
+        self.prof_del_btn.clicked.connect(self._delete_profile)
+        brow.addWidget(self.prof_new_btn)
+        brow.addWidget(self.prof_del_btn)
+        brow.addStretch(1)
+        self.prof_card.lay.addLayout(brow)
+        self.games_lbl = QLabel()
+        self.games_lbl.setObjectName("cardTitle")
+        self.prof_card.lay.addWidget(self.games_lbl)
+        self.games_list = QListWidget()
+        self.games_list.setMinimumHeight(80)
+        self.prof_card.lay.addWidget(self.games_list)
+        grow = QHBoxLayout()
+        self.game_add_btn = QPushButton()
+        self.game_add_btn.clicked.connect(self._add_game)
+        self.game_del_btn = QPushButton()
+        self.game_del_btn.clicked.connect(self._remove_game)
+        grow.addWidget(self.game_add_btn)
+        grow.addWidget(self.game_del_btn)
+        grow.addStretch(1)
+        self.prof_card.lay.addLayout(grow)
+        lay.addWidget(self.prof_card)
         lay.addStretch(1)
         return page
 
@@ -498,7 +636,6 @@ class MainWindow(QMainWindow):
         self.steam_explain.setObjectName("secondary")
         self.steam_card.lay.addWidget(self.steam_explain)
         self.steam_virtual = QCheckBox()
-        self.steam_virtual.setChecked(bool(self.cfg.get("steam_hide_virtual", False)))
         self.steam_virtual.toggled.connect(lambda _: self._save())
         self.steam_virtual_lbl = QLabel()
         self.steam_virtual_lbl.setWordWrap(True)
@@ -569,12 +706,13 @@ class MainWindow(QMainWindow):
             QFrame#card {{ background: {card}; border: 1px solid {border}; border-radius: 8px; }}
             QFrame#statusBar {{ background: {card}; border: 1px solid {border}; border-radius: 8px; }}
             QLabel#statusText {{ font-size: 13px; font-weight: 600; }}
+            QListWidget {{ background: {hover}; border: 1px solid {border}; border-radius: 6px; color: {fg}; }}
             QPushButton#optionCard {{ background: transparent; border: 1px solid {border};
                                       border-radius: 8px; text-align: left; }}
             QPushButton#optionCard:hover {{ background: {hover}; }}
             QPushButton#optionCard:checked {{ border: 2px solid {accent}; background: {hover}; }}
             QPushButton#navButton {{ background: transparent; border: none; border-radius: 6px;
-                                     padding: 7px 16px; color: {fg2}; font-size: 13px; font-weight: 600; }}
+                                     padding: 7px 11px; color: {fg2}; font-size: 13px; font-weight: 600; }}
             QPushButton#navButton:hover {{ background: {hover}; }}
             QPushButton#navButton:checked {{ background: {card}; color: {fg}; border: 1px solid {border};
                                              border-bottom: 3px solid {accent}; }}
@@ -592,6 +730,10 @@ class MainWindow(QMainWindow):
         self._render_status()
 
     # ------------------------------------------------------------------ texts
+    def _set_combo_texts(self, combo, keys):
+        for i, key in enumerate(keys):
+            combo.setItemText(i, self.t(key))
+
     def retranslate(self):
         t = self.t
         self.subtitle_lbl.setText(t("subtitle"))
@@ -600,8 +742,9 @@ class MainWindow(QMainWindow):
         self.controller.set_hint(t("view_hint"))
         self.motion_card.title.setText(t("motion_title"))
         self.motion_view.labels = (t("gyro"), t("tilt"), t("no_motion"))
-        for b, key in zip(self.nav_buttons, ("tab_general", "tab_buttons", "tab_steam")):
+        for b, key in zip(self.nav_buttons, self.TAB_KEYS):
             b.setText(t(key))
+        self.editing_lbl.setText(t("editing_profile"))
         self.emu_card.title.setText(t("emulate_title"))
         self.emu_xbox.set_texts(t("emu_xbox"), t("emu_xbox_desc"))
         self.emu_ps4.set_texts(t("emu_ps4"), t("emu_ps4_desc"))
@@ -610,31 +753,71 @@ class MainWindow(QMainWindow):
         self.layout_let.setText(t("layout_letters"))
         self.opts_card.title.setText(t("rumble") + " · " + t("motion"))
         self.rumble_cb.setText(t("rumble"))
-        self.dz_lbl.setText(t("deadzone"))
+        self.rumble_str_lbl.setText(t("rumble_strength"))
         self.test_btn.setText(t("test_rumble"))
         self.theme_lbl.setText(t("theme"))
-        for i, key in enumerate(("theme_system", "theme_light", "theme_dark")):
-            self.theme_combo.setItemText(i, t(key))
+        self._set_combo_texts(self.theme_combo, ("theme_system", "theme_light", "theme_dark"))
+        self.sticks_card.title.setText(t("sticks_title"))
+        self.dz_lbl.setText(t("deadzone"))
+        self.curve_lbl.setText(t("curve"))
+        self._set_combo_texts(self.curve_combo, ("curve_linear", "curve_smooth", "curve_fast"))
+        self.invert_ly_cb.setText(t("invert_ly"))
+        self.invert_ry_cb.setText(t("invert_ry"))
+        self.hotkeys_card.title.setText(t("hotkeys_title"))
+        self.hotkeys_cb.setText(t("hotkeys_enable"))
+        self.hotkeys_desc.setText(t("hotkeys_desc"))
+        self.bg_card.title.setText(t("system_title"))
+        self.tray_cb.setText(t("close_to_tray"))
+        self.autostart_cb.setText(t("autostart"))
+        self.updates_cb.setText(t("check_updates"))
+        self.logs_btn.setText(t("open_logs"))
+        self.gyro_card.title.setText(t("gyro_title"))
+        self.gyro_desc.setText(t("gyro_desc"))
+        self.gyro_mode_lbl.setText(t("gyro_mode"))
+        self.gyro_act_lbl.setText(t("gyro_activation"))
+        self.gyro_btn_lbl.setText(t("gyro_button"))
+        self.gyro_axis_lbl.setText(t("gyro_axis"))
+        self._set_combo_texts(self.gyro_mode, ("gyro_off", "gyro_mouse", "gyro_rstick"))
+        self._set_combo_texts(self.gyro_act, ("gyro_hold", "gyro_toggle", "gyro_always"))
+        self._set_combo_texts(self.gyro_axis, ("gyro_axis_yaw", "gyro_axis_roll"))
+        for i, name in enumerate(PHYSICAL_BUTTONS):
+            self.gyro_btn.setItemText(i, self._phys_label(name))
+        self.gyro_sens_lbl.setText(t("gyro_sens"))
+        self.gyro_invert_cb.setText(t("gyro_invert_y"))
         self.touch_card.title.setText(t("touch_title"))
         self.touch_cb.setText(t("touch_gyro"))
         self.touch_sticks_cb.setText(t("touch_sticks"))
         self.touch_desc.setText(t("touch_gyro_desc"))
         self.touch_sens_lbl.setText(t("touch_sens"))
-        self.bg_card.title.setText(t("background"))
-        self.tray_cb.setText(t("close_to_tray"))
-        self.autostart_cb.setText(t("autostart"))
-        self._retranslate_tray()
         self.map_card.title.setText(t("buttons_title"))
-        self.map_note.setText(t("buttons_face_note"))
+        self.map_note.setText(t("buttons_face_note") + " " + t("turbo_note"))
         self.restore_btn.setText(t("restore_defaults"))
+        self.turbo_rate_lbl.setText(t("turbo_rate"))
+        for h in self.turbo_headers:
+            h.setText(t("turbo"))
         for name, lbl in self.map_labels.items():
-            lbl.setText(t(f"phys_{name}") if f"phys_{name}" in _keys(t) else name)
+            lbl.setText(self._phys_label(name))
+        self.prof_card.title.setText(t("profiles_title"))
+        self.prof_desc.setText(t("profiles_desc"))
+        self.prof_auto_cb.setText(t("profile_auto"))
+        self.prof_new_btn.setText(t("profile_new"))
+        self.prof_del_btn.setText(t("profile_delete"))
+        self.games_lbl.setText(t("profile_games"))
+        self.game_add_btn.setText(t("profile_add_game"))
+        self.game_del_btn.setText(t("profile_remove_game"))
         self.steam_card.title.setText(t("steam_title"))
         self.steam_explain.setText(t("steam_explain"))
         self.steam_virtual_lbl.setText(t("steam_hide_virtual"))
+        if self.update_btn.isVisible():
+            self.update_btn.setText(f"⬆ {t('update_available', version=self._update_version)}")
+        self._retranslate_tray()
+        self._refresh_profiles()
         self._refresh_mode()
         self._refresh_steam()
         self._render_status()
+
+    def _phys_label(self, name):
+        return self.t(f"phys_{name}") if f"phys_{name}" in _keys(self.t) else name
 
     def _target_label(self, target, mode=None):
         mode = mode or self._mode()
@@ -655,9 +838,13 @@ class MainWindow(QMainWindow):
         self.motion_cb.setEnabled(mode == "ps4")
         self.motion_cb.setText(self.t("motion") if mode == "ps4" else self.t("motion_ps4_only"))
         self.touch_card.setEnabled(mode == "ps4")
+        gyro_on = self.gyro_mode.currentData() != "off"
+        for w in (self.gyro_act, self.gyro_btn, self.gyro_axis, self.gyro_sens, self.gyro_invert_cb):
+            w.setEnabled(gyro_on)
+        self.gyro_btn.setEnabled(gyro_on and self.gyro_act.currentData() != "always")
         self.controller.set_mode(mode)
         self._sync_tray()
-        effective = config_mod.build_mapping(self._collect())
+        effective = config_mod.build_mapping(dict(self.cfg, layout=self._layout()))
         for name, combo in self.map_combos.items():
             if name in config_mod.FACE_BUTTONS:
                 self.targets[name] = effective[name]
@@ -672,30 +859,102 @@ class MainWindow(QMainWindow):
             combo.blockSignals(False)
 
     # ------------------------------------------------------------------ config
+    def _layout(self):
+        return "letras" if self.layout_let.isChecked() else "posicion"
+
+    def _load_widgets(self):
+        """Pone en los controles la configuracion del perfil que se edita."""
+        self._loading = True
+        c, b = self.cfg, self.base
+        widgets = [self.emu_xbox, self.emu_ps4, self.layout_pos, self.layout_let, self.rumble_cb, self.motion_cb,
+                   self.invert_ly_cb, self.invert_ry_cb, self.hotkeys_cb, self.tray_cb, self.autostart_cb,
+                   self.updates_cb, self.touch_cb, self.touch_sticks_cb, self.gyro_invert_cb, self.prof_auto_cb,
+                   self.steam_virtual, self.theme_combo, self.curve_combo, self.gyro_mode, self.gyro_act,
+                   self.gyro_btn, self.gyro_axis, *self.turbo_checks.values()]
+        for w in widgets:
+            w.blockSignals(True)
+        (self.emu_ps4 if c["emulate"] == "ps4" else self.emu_xbox).setChecked(True)
+        (self.layout_let if c["layout"] == "letras" else self.layout_pos).setChecked(True)
+        self.rumble_cb.setChecked(c.get("rumble", True))
+        self.motion_cb.setChecked(c.get("motion", True))
+        self.invert_ly_cb.setChecked(c.get("invert_ly", False))
+        self.invert_ry_cb.setChecked(c.get("invert_ry", False))
+        self.touch_cb.setChecked(c.get("touch_gyro", True))
+        self.touch_sticks_cb.setChecked(c.get("touch_sticks", True))
+        self.gyro_invert_cb.setChecked(c.get("gyro_invert_y", False))
+        for combo, key, default in ((self.curve_combo, "stick_curve", "linear"), (self.gyro_mode, "gyro_aim", "off"),
+                                    (self.gyro_act, "gyro_activation", "hold"), (self.gyro_btn, "gyro_button", "ZL"),
+                                    (self.gyro_axis, "gyro_axis", "yaw")):
+            combo.setCurrentIndex(max(0, combo.findData(c.get(key, default))))
+        turbo = set(c.get("turbo", []))
+        for name, cb in self.turbo_checks.items():
+            cb.setChecked(name in turbo)
+        self.hotkeys_cb.setChecked(b.get("hotkeys", True))
+        self.tray_cb.setChecked(b.get("close_to_tray", True))
+        self.autostart_cb.setChecked(autostart.is_enabled())
+        self.updates_cb.setChecked(b.get("check_updates", True))
+        self.prof_auto_cb.setChecked(b.get("profile_auto", True))
+        self.steam_virtual.setChecked(bool(b.get("steam_hide_virtual", False)))
+        self.theme_combo.setCurrentIndex(max(0, self.theme_combo.findData(b.get("theme", "system"))))
+        for w in widgets:
+            w.blockSignals(False)
+        self._set_slider(self.rumble_str, c.get("rumble_strength", 100))
+        self._set_slider(self.dz_slider, c.get("deadzone", 0.06) * 100)
+        self._set_slider(self.gyro_sens, float(c.get("gyro_sens", 1.0)) * 100)
+        self._set_slider(self.touch_sens, c.get("touch_sensitivity", 25))
+        self._set_slider(self.turbo_rate, c.get("turbo_rate", 12))
+        self.targets = dict(config_mod.build_mapping(c))
+        self._loading = False
+        self._refresh_mode()
+
     def _collect(self):
         return {
             "emulate": self._mode(),
-            "layout": "letras" if self.layout_let.isChecked() else "posicion",
+            "layout": self._layout(),
             "rumble": self.rumble_cb.isChecked(),
+            "rumble_strength": self.rumble_str.value(),
             "motion": self.motion_cb.isChecked(),
             "deadzone": self.dz_slider.value() / 100,
-            "language": self.lang_combo.currentData(),
-            "theme": self.theme_combo.currentData(),
-            "steam_hide_virtual": self.steam_virtual.isChecked() if hasattr(self, "steam_virtual") else False,
+            "stick_curve": self.curve_combo.currentData(),
+            "invert_ly": self.invert_ly_cb.isChecked(),
+            "invert_ry": self.invert_ry_cb.isChecked(),
             "touch_gyro": self.touch_cb.isChecked(),
             "touch_sticks": self.touch_sticks_cb.isChecked(),
             "touch_sensitivity": self.touch_sens.value(),
+            "gyro_aim": self.gyro_mode.currentData(),
+            "gyro_activation": self.gyro_act.currentData(),
+            "gyro_button": self.gyro_btn.currentData(),
+            "gyro_sens": self.gyro_sens.value() / 100,
+            "gyro_axis": self.gyro_axis.currentData(),
+            "gyro_invert_y": self.gyro_invert_cb.isChecked(),
+            "turbo": [n for n, cb in self.turbo_checks.items() if cb.isChecked()],
+            "turbo_rate": self.turbo_rate.value(),
+            "mapping": {n: tgt for n, tgt in self.targets.items() if n not in config_mod.FACE_BUTTONS},
+            "language": self.lang_combo.currentData(),
+            "theme": self.theme_combo.currentData(),
+            "steam_hide_virtual": self.steam_virtual.isChecked(),
             "close_to_tray": self.tray_cb.isChecked(),
             "autostart": self.autostart_cb.isChecked(),
-            "tray_hint_shown": bool(self.cfg.get("tray_hint_shown", False)),
-            "mapping": {n: tgt for n, tgt in self.targets.items() if n not in config_mod.FACE_BUTTONS},
+            "hotkeys": self.hotkeys_cb.isChecked(),
+            "check_updates": self.updates_cb.isChecked(),
+            "profile_auto": self.prof_auto_cb.isChecked(),
         }
 
     def _save(self):
-        if not hasattr(self, "steam_virtual"):
-            return  # todavia construyendo la interfaz
-        self.bridge.reload_config(self._collect())
-        self.cfg = self.bridge.cfg
+        if self._loading or not hasattr(self, "prof_auto_cb"):
+            return  # cargando valores o construyendo la interfaz
+        c = self._collect()
+        base = config_mod.load_config()
+        for k in self.GLOBAL_KEYS:
+            base[k] = c[k]
+        settings = {k: c[k] for k in config_mod.PROFILE_KEYS}
+        if self.editing and self.editing in base.get("profiles", {}):
+            base["profiles"][self.editing]["settings"] = settings
+        else:
+            base.update(settings)
+        self.bridge.reload_config(base)
+        self.base = self.bridge.base
+        self.cfg = config_mod.effective_config(self.base, self.editing)
         self._refresh_mode()
 
     def _on_map_change(self, name):
@@ -704,12 +963,8 @@ class MainWindow(QMainWindow):
 
     def _defaults(self):
         d = config_mod.DEFAULT_CONFIG
-        self.layout_pos.setChecked(d["layout"] == "posicion")
-        self.layout_let.setChecked(d["layout"] == "letras")
-        self.rumble_cb.setChecked(d["rumble"])
-        self.motion_cb.setChecked(d["motion"])
-        self.dz_slider.setValue(round(d["deadzone"] * 100))
-        self.targets.update(d["mapping"])
+        self.cfg = dict(self.cfg, **{k: json.loads(json.dumps(d[k])) for k in config_mod.PROFILE_KEYS})
+        self._load_widgets()
         self._save()
 
     def _on_language(self):
@@ -717,8 +972,128 @@ class MainWindow(QMainWindow):
         self._save()
         self.retranslate()
 
+    # ------------------------------------------------------------------ perfiles
+    def _profile_names(self):
+        return sorted(self.base.get("profiles", {}), key=str.lower)
+
+    def _refresh_profiles(self):
+        names = self._profile_names()
+        if self.editing not in names:
+            self.editing = ""
+        self.editing_combo.blockSignals(True)
+        self.editing_combo.clear()
+        self.editing_combo.addItem(self.t("profile_default"), "")
+        for n in names:
+            self.editing_combo.addItem(n, n)
+        self.editing_combo.setCurrentIndex(max(0, self.editing_combo.findData(self.editing)))
+        self.editing_combo.blockSignals(False)
+        cur = self.prof_list.currentItem().text() if self.prof_list.currentItem() else None
+        self.prof_list.blockSignals(True)
+        self.prof_list.clear()
+        for n in names:
+            self.prof_list.addItem(n)
+        if not names:
+            self.prof_list.addItem(self.t("profile_none"))
+            self.prof_list.item(0).setFlags(Qt.NoItemFlags)
+        elif cur in names:
+            self.prof_list.setCurrentRow(names.index(cur))
+        self.prof_list.blockSignals(False)
+        self._refresh_profile_games()
+        active = self.bridge.active_profile or self.t("profile_default")
+        self.profile_lbl.setText(self.t("active_profile", name=active))
+        self._rebuild_tray_profiles()
+
+    def _selected_profile(self):
+        item = self.prof_list.currentItem()
+        return item.text() if item and item.text() in self.base.get("profiles", {}) else None
+
+    def _refresh_profile_games(self):
+        name = self._selected_profile()
+        self.games_list.clear()
+        for exe in (self.base["profiles"][name].get("exes", []) if name else []):
+            self.games_list.addItem(exe)
+        for w in (self.prof_del_btn, self.game_add_btn):
+            w.setEnabled(name is not None)
+        self.game_del_btn.setEnabled(name is not None and self.games_list.count() > 0)
+
+    def _store_base(self, base):
+        self.bridge.reload_config(base)
+        self.base = self.bridge.base
+        self.cfg = config_mod.effective_config(self.base, self.editing)
+        self._refresh_profiles()
+
+    def _new_profile(self):
+        name, ok = QInputDialog.getText(self, self.t("profile_new"), self.t("profile_name"))
+        name = name.strip()
+        if not ok or not name:
+            return
+        base = config_mod.load_config()
+        # el perfil nuevo parte de la configuracion que se esta viendo
+        base.setdefault("profiles", {})[name] = {"exes": [], "settings": config_mod.profile_settings(self.cfg)}
+        self.editing = name
+        self._store_base(base)
+        self.prof_list.setCurrentRow(self._profile_names().index(name))
+        self._load_widgets()
+
+    def _delete_profile(self):
+        name = self._selected_profile()
+        if not name:
+            return
+        base = config_mod.load_config()
+        base.get("profiles", {}).pop(name, None)
+        if base.get("manual_profile") == name:
+            base["manual_profile"] = ""
+        if self.editing == name:
+            self.editing = ""
+        self._store_base(base)
+        self._load_widgets()
+
+    def _add_game(self):
+        name = self._selected_profile()
+        if not name:
+            return
+        exe, ok = QInputDialog.getItem(self, self.t("profile_add_game"), self.t("pick_game"),
+                                       foreground.open_windows() or [""], 0, True)
+        exe = os.path.basename(exe.strip())
+        if not ok or not exe:
+            return
+        base = config_mod.load_config()
+        exes = base["profiles"][name].setdefault("exes", [])
+        if exe.lower() not in (e.lower() for e in exes):
+            exes.append(exe)
+        self._store_base(base)
+
+    def _remove_game(self):
+        name, item = self._selected_profile(), self.games_list.currentItem()
+        if not name or not item:
+            return
+        base = config_mod.load_config()
+        exes = base["profiles"][name].get("exes", [])
+        if item.text() in exes:
+            exes.remove(item.text())
+        self._store_base(base)
+
+    def _on_editing_changed(self):
+        self.editing = self.editing_combo.currentData() or ""
+        self.cfg = config_mod.effective_config(self.base, self.editing)
+        self._load_widgets()
+
     # ------------------------------------------------------------------ status
     def _on_status(self, code, params):
+        if code == "profile":
+            self._refresh_profiles()
+            name = params.get("name") or self.t("profile_default")
+            self._flash(self.t("hk_profile", value=name))
+            return
+        if code == "config_changed":
+            self.base = self.bridge.base
+            self.cfg = config_mod.effective_config(self.base, self.editing)
+            self._load_widgets()
+            self._refresh_profiles()
+            return
+        if code == "hotkey":
+            self._show_hotkey(params.get("action"), params.get("value"))
+            return
         self._status = (code, params)
         if code in ("connected",):
             self.controller.set_connected(True)
@@ -728,6 +1103,31 @@ class MainWindow(QMainWindow):
         if code == "busy":
             self._refresh_steam()
         self._render_status()
+
+    def _show_hotkey(self, action, value):
+        t = self.t
+        if action == "emulate":
+            msg = t("hk_emulate", value=OUTPUT_NAMES.get(value, value))
+        elif action == "gyro":
+            msg = t("hk_gyro_on") if value else t("hk_gyro_off")
+        elif action in ("rumble_up", "rumble_down"):
+            msg = t("hk_rumble", value=value)
+        else:
+            msg = t("hk_profile", value=value or t("profile_default"))
+        self._flash(msg)
+
+    def _flash(self, text):
+        """Aviso breve en la barra de estado (y en la bandeja si la ventana esta oculta)."""
+        self._flash_text = text
+        self._render_status()
+        if self.tray is not None and self.isHidden():
+            self.tray.showMessage("Switch2Pad", text, QSystemTrayIcon.Information, 2000)
+
+        def clear(expected=text):
+            if self._flash_text == expected:
+                self._flash_text = None
+                self._render_status()
+        QTimer.singleShot(2500, clear)
 
     def _render_status(self):
         if not hasattr(self, "status_lbl"):
@@ -759,6 +1159,8 @@ class MainWindow(QMainWindow):
             text = t("status_stopped")
         else:
             text, color = t("status_starting"), self.accent if hasattr(self, "accent") else "#0067c0"
+        if self._flash_text:
+            text = f"{text}   —   {self._flash_text}"
         self.status_dot.setStyleSheet(f"color: {color}; font-size: 16px;")
         self.status_lbl.setText(text)
         if self.tray is not None:
@@ -780,6 +1182,20 @@ class MainWindow(QMainWindow):
         if path:
             os.startfile(path)  # msiexec pedira permisos de administrador
             QTimer.singleShot(5000, self.bridge.retry_now)
+
+    # ------------------------------------------------------------------ actualizaciones
+    def _check_updates(self):
+        found = updates.newer_version()
+        if found:
+            self.signals.update.emit(*found)
+
+    def _on_update_found(self, version, url):
+        self._update_version, self._update_url = version, url
+        self.update_btn.setText(f"⬆ {self.t('update_available', version=version)}")
+        self.update_btn.show()
+        if self.tray is not None and self.isHidden():
+            self.tray.showMessage("Switch2Pad", self.t("update_available", version=version),
+                                  QSystemTrayIcon.Information, 4000)
 
     # ------------------------------------------------------------------ steam
     def _refresh_steam(self):
@@ -812,8 +1228,8 @@ class MainWindow(QMainWindow):
         if self._steam_busy:
             return
         if self.isVisible():
-            self.nav_buttons[2].setChecked(True)
-            self.pages.setCurrentIndex(2)
+            self.nav_buttons[self.STEAM_TAB].setChecked(True)
+            self.pages.setCurrentIndex(self.STEAM_TAB)
         st = getattr(self, "_steam_state", None) or steam.status()
         enable = not st["priority"]
         if self._status[0] == "busy":
@@ -866,9 +1282,7 @@ class MainWindow(QMainWindow):
         parts = []
         for name in PHYSICAL_BUTTONS:
             if s.buttons.get(name):
-                phys = self.t(f"phys_{name}") if f"phys_{name}" in _keys(self.t) else name
-                target = mapping.get(name, "")
-                parts.append(f"<b>{phys}</b> → {self._target_label(target)}")
+                parts.append(f"<b>{self._phys_label(name)}</b> → {self._target_label(mapping.get(name, ''))}")
         self.chips.setText("   ·   ".join(parts) if parts else self.t("pressed_none"))
 
     def closeEvent(self, event):
@@ -876,11 +1290,12 @@ class MainWindow(QMainWindow):
                 and QSystemTrayIcon.isSystemTrayAvailable()):
             event.ignore()
             self.hide()
-            if not self.cfg.get("tray_hint_shown"):
+            if not self.base.get("tray_hint_shown"):
                 self.tray.showMessage(self.t("tray_bg_title"), self.t("tray_bg_msg"),
                                       QSystemTrayIcon.Information, 6000)
-                self.cfg["tray_hint_shown"] = True
-                self._save()
+                base = config_mod.load_config()
+                base["tray_hint_shown"] = True
+                self._store_base(base)
             return
         self.timer.stop()
         self.bridge.stop()
@@ -906,6 +1321,7 @@ class MainWindow(QMainWindow):
             act.setCheckable(True)
             group.addAction(act)
             act.triggered.connect(lambda _=False, b=btn: (b.setChecked(True), self._save()))
+        self.menu_profile = menu.addMenu("")
         self.act_rumble = menu.addAction("")
         self.act_motion = menu.addAction("")
         self.act_touch = menu.addAction("")
@@ -924,12 +1340,32 @@ class MainWindow(QMainWindow):
         self.tray.activated.connect(self._on_tray_activated)
         self.tray.show()
 
+    def _rebuild_tray_profiles(self):
+        if self.tray is None:
+            return
+        self.menu_profile.clear()
+        group = QActionGroup(self.menu_profile)
+        for name in [""] + self._profile_names():
+            act = self.menu_profile.addAction(name or self.t("profile_default"))
+            act.setCheckable(True)
+            act.setChecked(name == self.bridge.active_profile)
+            group.addAction(act)
+            act.triggered.connect(lambda _=False, n=name: self._choose_profile(n))
+
+    def _choose_profile(self, name):
+        base = config_mod.load_config()
+        base["profile_auto"] = False
+        base["manual_profile"] = name
+        self._store_base(base)
+        self._load_widgets()
+
     def _retranslate_tray(self):
         if self.tray is None:
             return
         t = self.t
         self.act_show.setText(t("tray_show"))
         self.menu_emulate.setTitle(t("tray_emulate"))
+        self.menu_profile.setTitle(t("tray_profile"))
         self.act_rumble.setText(t("rumble"))
         self.act_motion.setText(t("motion"))
         self.act_touch.setText(t("touch_gyro"))
@@ -976,7 +1412,6 @@ class MainWindow(QMainWindow):
         except OSError as e:
             print(f"[autostart] {e}", file=sys.stderr)
         self._save()
-
 
 def _keys(t):
     from ..i18n import STRINGS

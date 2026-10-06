@@ -14,3 +14,6 @@ else:  # pragma: no cover
     raise ImportError(f"Plataforma no soportada: {sys.platform}")
 
 OUTPUTS = {"xbox": XboxOutput, "ps4": DS4Output}
+
+__all__ = ["OUTPUTS", "DRIVER_NAME", "BackendUnavailable", "XboxOutput", "DS4Output",
+           "driver_installed", "driver_installer"]

@@ -24,6 +24,9 @@ Windows et la plupart des jeux ne comprennent pas la manette Pro Switch 2 en USB
 - 🎮 **Mode Xbox 360 ou PS4** : changez quand vous voulez, même en jeu.
 - 🌀 **Gyroscope et accéléromètre** (mode PS4) : visée par mouvement dans les jeux et émulateurs compatibles DS4.
 - ✌️ **Gestes du pavé tactile, même à deux doigts** : maintenez *Capture* et les sticks deviennent des doigts ; la croix fait des glissements rapides et L3/R3 cliquent à gauche/droite.
+- 🎯 **Visée au gyroscope dans n'importe quel jeu** : déplacez la souris ou le stick droit en bougeant la manette, même en mode Xbox.
+- 🗂️ **Profils par jeu** qui changent automatiquement selon le jeu au premier plan.
+- ⌨️ **Raccourcis avec le bouton C**, **turbo** par bouton, **intensité des vibrations** et **courbes de réponse** des sticks.
 - 📳 **Vibrations** transmises du jeu à la manette.
 - 🧊 **Manette 3D en direct** qui suit le gyroscope de la vraie manette et éclaire les boutons pressés.
 - 🚫 **Priorité sur Steam** : en un clic, Steam arrête de prendre et de reconfigurer la manette.
@@ -53,6 +56,8 @@ Windows et la plupart des jeux ne comprennent pas la manette Pro Switch 2 en USB
 | <img src="screenshots/touchpad.png" alt=""> | <img src="screenshots/buttons.png" alt=""> |
 | **Priorité sur Steam** | **Thème clair · mode Xbox** |
 | <img src="screenshots/steam.png" alt=""> | <img src="screenshots/light-xbox.png" alt=""> |
+| 🎯 | 🗂️ |
+| <img src="screenshots/motion.png" alt=""> | <img src="screenshots/profiles.png" alt=""> |
 | **Interface traduite (日本語)** | **Zone de notification** |
 | <img src="screenshots/japanese.png" alt=""> | <img src="screenshots/tray.png" width="260" alt=""> |
 
@@ -103,6 +108,8 @@ sh build_linux.sh                           # Linux   -> dist/Switch2Pad-<versio
 ## Contribuer
 
 Issues, idées, traductions et pull requests sont les bienvenus : voir [CONTRIBUTING.md](../CONTRIBUTING.md). Si Switch2Pad vous aide, **une ⭐ aide d'autres personnes à le trouver.**
+
+Licence [MIT](../LICENSE) © Tomás González. Le modèle 3D de la manette a été réalisé par l'auteur.
 
 ---
 

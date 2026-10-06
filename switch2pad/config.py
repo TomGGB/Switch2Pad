@@ -22,6 +22,13 @@ FACE_BUTTONS = ("A", "B", "X", "Y")
 
 EMULATE_MODES = ("xbox", "ps4")
 
+# Ajustes que puede cambiar cada perfil de juego (el resto son globales: idioma, tema...)
+PROFILE_KEYS = ("emulate", "layout", "rumble", "rumble_strength", "motion", "deadzone", "stick_curve",
+                "invert_ly", "invert_ry", "touch_gyro", "touch_sticks", "touch_sensitivity", "gyro_aim",
+                "gyro_activation", "gyro_button", "gyro_sens", "gyro_axis", "gyro_invert_y", "turbo",
+                "turbo_rate", "mapping")
+STICK_CURVES = ("linear", "smooth", "fast")
+
 DEFAULT_CONFIG = {
     "emulate": "xbox",
     "layout": "posicion",
@@ -37,6 +44,23 @@ DEFAULT_CONFIG = {
     "autostart": False,
     "close_to_tray": True,     # la X deja la app en la bandeja
     "tray_hint_shown": False,
+    "rumble_strength": 100,    # % de la vibracion que piden los juegos
+    "stick_curve": "linear",   # linear | smooth (mas precision en el centro) | fast
+    "invert_ly": False,
+    "invert_ry": False,
+    "gyro_aim": "off",         # off | mouse | rstick: apuntar moviendo el mando
+    "gyro_activation": "hold", # always | hold | toggle
+    "gyro_button": "ZL",       # boton fisico que activa el giroscopio (hold / toggle)
+    "gyro_sens": 1.0,          # multiplicador de sensibilidad
+    "gyro_axis": "yaw",        # eje horizontal: yaw (girar) | roll (inclinar)
+    "gyro_invert_y": False,
+    "turbo": [],               # botones fisicos con turbo
+    "turbo_rate": 12,          # pulsaciones por segundo
+    "hotkeys": True,           # atajos con el boton C
+    "check_updates": True,
+    "profiles": {},            # nombre -> {"exes": [...], "settings": {...}}
+    "profile_auto": True,      # cambiar de perfil segun el juego en primer plano
+    "manual_profile": "",      # perfil elegido a mano (bandeja / atajo C + L/R)
     "mapping": {
         "L": "LB", "R": "RB", "ZL": "LT", "ZR": "RT",
         "MINUS": "BACK", "PLUS": "START", "HOME": "GUIDE",
@@ -104,6 +128,34 @@ def save_config(cfg):
     os.replace(tmp, CONFIG_PATH)
 
 
+def profile_settings(cfg):
+    """Copia de los ajustes que guarda un perfil."""
+    return json.loads(json.dumps({k: cfg[k] for k in PROFILE_KEYS if k in cfg}))
+
+
+def effective_config(cfg, profile=""):
+    """Configuracion base con los ajustes del perfil indicado encima."""
+    eff = json.loads(json.dumps(cfg))
+    prof = cfg.get("profiles", {}).get(profile) if profile else None
+    if prof:
+        settings = prof.get("settings", {})
+        eff.update({k: v for k, v in settings.items() if k != "mapping" and k in PROFILE_KEYS})
+        eff["mapping"].update(settings.get("mapping", {}))
+    eff["active_profile"] = profile if prof else ""
+    return eff
+
+
+def profile_for_exe(cfg, exe):
+    """Nombre del perfil asignado a un ejecutable (sin distinguir mayusculas) o ""."""
+    if not exe:
+        return ""
+    exe = exe.lower()
+    for name, prof in cfg.get("profiles", {}).items():
+        if exe in (e.lower() for e in prof.get("exes", [])):
+            return name
+    return ""
+
+
 def build_mapping(cfg):
     """Boton fisico -> destino logico ('A', 'LT', 'TOUCHPAD', '' ...)."""
     mapping = dict(cfg["mapping"])
@@ -113,14 +165,25 @@ def build_mapping(cfg):
 
 def apply_deadzone(x, y, dz):
     mag = (x * x + y * y) ** 0.5
-    if mag < dz:
+    if mag <= dz or mag == 0:   # mag == 0: zona muerta al 0 % con el stick centrado
         return 0.0, 0.0
     scale = min(1.0, (mag - dz) / (1 - dz)) / mag
     return x * scale, y * scale
 
 
+def apply_curve(x, y, curve):
+    """Curva de respuesta radial: smooth = mas precision cerca del centro; fast = al reves."""
+    mag = (x * x + y * y) ** 0.5
+    if mag == 0 or curve not in ("smooth", "fast"):
+        return x, y
+    m = min(1.0, mag)
+    new = m * m if curve == "smooth" else m ** 0.6
+    return x * new / mag, y * new / mag
+
+
 def resolve(state, mapping, cfg):
-    """Aplica el mapeo y la zona muerta. Devuelve (destinos pulsados, sticks, gatillos)."""
+    """Aplica el mapeo, la zona muerta, la curva, la inversion de ejes y el apuntado con
+    giroscopio. Devuelve (destinos pulsados, sticks, gatillos)."""
     pressed = set()
     lt, rt = state.lt, state.rt
     for name, down in state.buttons.items():
@@ -139,5 +202,15 @@ def resolve(state, mapping, cfg):
         if touch.click:
             pressed.add("TOUCHPAD")
     dz = float(cfg.get("deadzone", 0.06))
-    sticks = apply_deadzone(state.lx, state.ly, dz) + apply_deadzone(state.rx, state.ry, dz)
-    return pressed, sticks, (lt, rt)
+    curve = cfg.get("stick_curve", "linear")
+    lx, ly = apply_curve(*apply_deadzone(state.lx, state.ly, dz), curve)
+    rx, ry = apply_curve(*apply_deadzone(state.rx, state.ry, dz), curve)
+    if cfg.get("invert_ly"):
+        ly = -ly
+    if cfg.get("invert_ry"):
+        ry = -ry
+    aim = getattr(state, "aim", None)   # giroscopio -> stick derecho (sin zona muerta)
+    if aim:
+        rx = max(-1.0, min(1.0, rx + aim[0]))
+        ry = max(-1.0, min(1.0, ry + aim[1]))
+    return pressed, (lx, ly, rx, ry), (lt, rt)
