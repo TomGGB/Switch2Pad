@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Switch2Pad
+GenericName=Switch 2 controller mapper
+Comment=Use the Switch 2 controller as an Xbox 360 or PS4 controller
+Comment[es]=Usa el mando de Switch 2 como mando de Xbox 360 o PS4
+Exec=@BIN@
+Icon=switch2pad
+Terminal=false
+Categories=Game;Utility;
+Keywords=controller;gamepad;switch;xbox;ps4;dualshock;
+StartupWMClass=switch2pad
