@@ -173,13 +173,13 @@ class DS4Output:
         buf[32] = 1     # un paquete de touchpad
         self._touch_counter = (getattr(self, "_touch_counter", 0) + 1) & 0xFF
         buf[33] = self._touch_counter
-        buf[34] = 0x80  # dedo 1 levantado (bit 7 = sin contacto)
-        if touch is not None and touch.down:
-            buf[34] = touch.track & 0x7F
-            buf[35] = touch.x & 0xFF
-            buf[36] = ((touch.x >> 8) & 0x0F) | ((touch.y & 0x0F) << 4)
-            buf[37] = (touch.y >> 4) & 0xFF
-        buf[38] = 0x80  # dedo 2 levantado
+        buf[34] = buf[38] = 0x80  # dedos levantados (bit 7 = sin contacto)
+        for slot, track, x, y in (touch.fingers if touch is not None else ())[:2]:
+            o = 34 + 4 * slot
+            buf[o] = track & 0x7F
+            buf[o + 1] = x & 0xFF
+            buf[o + 2] = ((x >> 8) & 0x0F) | ((y & 0x0F) << 4)
+            buf[o + 3] = (y >> 4) & 0xFF
         return buf
 
     def reset(self):

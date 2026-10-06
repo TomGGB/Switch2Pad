@@ -1,5 +1,6 @@
 """Bucle principal: mando fisico -> mando virtual (Xbox 360 o DualShock 4)."""
 
+import copy
 import threading
 import time
 
@@ -7,7 +8,7 @@ import usb.core
 
 from . import config as config_mod
 from .outputs import OUTPUTS, BackendUnavailable
-from .touch import TouchpadGesture
+from .touch import CAPTURED_BUTTONS, TouchpadGesture
 from .protocol import RUMBLE_INTERVAL, ControllerBusyError, Switch2Controller, decode, find_device
 
 
@@ -115,6 +116,23 @@ class Bridge:
             self.out = None
         self.on_status("stopped")
 
+    def _touchpad(self, out, state):
+        """Gestos del touchpad (modo PS4). Devuelve el estado que se envia al juego: en
+        modo touchpad los sticks y botones que hacen de dedos no llegan al juego."""
+        cfg = self.cfg
+        use_gyro, use_sticks = cfg.get("touch_gyro", True), cfg.get("touch_sticks", True)
+        if out.kind != "ps4" or not (use_gyro or use_sticks):
+            return state
+        held = any(down and self.mapping.get(n) == "TOUCHPAD" for n, down in state.buttons.items())
+        state.touch = self._gesture.update(held, state, use_gyro, use_sticks,
+                                           float(cfg.get("touch_sensitivity", 25)))
+        if not (state.touch.capturing and use_sticks):
+            return state
+        game = copy.copy(state)
+        game.buttons = {n: v and n not in CAPTURED_BUTTONS for n, v in state.buttons.items()}
+        game.lx = game.ly = game.rx = game.ry = 0.0
+        return game
+
     def _loop(self, ctrl):
         last_rumble_sent = 0.0
         active_rumble = False
@@ -133,11 +151,7 @@ class Bridge:
             if data:
                 last_report = now
                 state = decode(ctrl, data)
-                if out.kind == "ps4" and self.cfg.get("touch_gyro", True):
-                    held = any(down and self.mapping.get(n) == "TOUCHPAD" for n, down in state.buttons.items())
-                    state.touch = self._gesture.update(held, state.gyro, state.has_motion,
-                                                       float(self.cfg.get("touch_sensitivity", 25)))
-                out.push(state, self.mapping, self.cfg)
+                out.push(self._touchpad(out, state), self.mapping, self.cfg)
                 if self.on_state:
                     self.on_state(state)
             elif now - last_report > 3.0:

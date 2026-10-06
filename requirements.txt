@@ -4,3 +4,4 @@ libusb-package>=1.0.26
 hidapi>=0.14; sys_platform == "win32"
 vgamepad>=0.1; sys_platform == "win32"
 evdev>=1.6; sys_platform == "linux"
+numpy>=1.24

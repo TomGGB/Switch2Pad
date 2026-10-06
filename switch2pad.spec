@@ -21,7 +21,7 @@ QT_EXCLUDES = ["PySide6.QtQml", "PySide6.QtQuick", "PySide6.QtQuickWidgets", "Py
                "PySide6.QtSvg", "PySide6.QtOpenGL", "PySide6.QtOpenGLWidgets", "PySide6.QtSql",
                "PySide6.QtTest", "PySide6.QtXml", "PySide6.QtConcurrent", "PySide6.QtDBus",
                "PySide6.QtPrintSupport", "PySide6.QtDesigner", "PySide6.QtHelp", "PySide6.QtUiTools",
-               "tkinter", "PIL", "numpy"]
+               "tkinter", "PIL"]
 
 a = Analysis(["run.py"], pathex=["."], binaries=binaries, datas=datas,
              hiddenimports=hiddenimports, excludes=QT_EXCLUDES, noarchive=False)

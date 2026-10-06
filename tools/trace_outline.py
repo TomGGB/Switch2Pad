@@ -1,7 +1,7 @@
 """Extrae el contorno del Pro Controller de la foto frontal (assets/frente.avif) y lo
 imprime como lista de puntos en el sistema de coordenadas del dibujo (600x400).
 
-Uso: python tools/trace_outline.py  -> pegar la salida en gui/controller_view.py (OUTLINE)
+Uso: python tools/trace_outline.py  -> pegar la salida en gui/controller3d.py (OUTLINE_LEFT)
 """
 
 import os

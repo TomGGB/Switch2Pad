@@ -4,11 +4,17 @@ Usa el mando de **Nintendo Switch 2** conectado por **USB** como un mando de **X
 **PS4 (DualShock 4)** en **Windows** y **Linux**. En modo PS4 también se envían el giroscopio y el
 acelerómetro (sensor de movimiento).
 
-- Dibujo del mando en vivo: los botones se iluminan al pulsarlos, los sticks se mueven y el dibujo se
-  inclina con el mando.
+- **Mando en 3D en vivo**: modelo del Switch 2 Pro Controller (silueta trazada de una foto real) que
+  gira con el giroscopio del mando, ilumina los botones pulsados y se puede girar con el ratón.
 - Remapeo de todos los botones, vibración, zona muerta y distribución A/B/X/Y por posición o por letra.
-- **Touchpad con giroscopio** (modo PS4): mantén el botón del touchpad (Captura por defecto) y gira el
-  mando para deslizar el dedo; un toque corto hace clic.
+- **Touchpad del DualShock 4 con gestos de uno y dos dedos** (modo PS4). Mantén el botón del touchpad
+  (Captura por defecto) y:
+  - Stick derecho / izquierdo = dedo 1 / dedo 2. Mueve los dos a la vez para gestos de dos dedos
+    (por ejemplo "MOVE CAR" en inFAMOUS Second Son: Captura + los dos sticks hacia arriba).
+  - Cruceta = deslizamiento rápido; con ZL o ZR, de dos dedos.
+  - L3 / R3 = clic del touchpad con los dedos apoyados. Girar el mando = arrastrar un dedo (opcional).
+  - Toque corto del botón = clic.
+  Mientras se mantiene el botón, los sticks y la cruceta no llegan al juego.
 - **Segundo plano**: al cerrar con la X la app sigue en la bandeja del sistema, con acciones rápidas
   (cambiar Xbox/PS4, vibración, movimiento, touchpad, prioridad sobre Steam, salir). Puede iniciarse
   con el sistema.
@@ -25,8 +31,8 @@ acelerómetro (sensor de movimiento).
 ## Linux
 
 ```sh
-tar -xzf Switch2Pad-2.1.1-linux-x86_64.tar.gz
-cd Switch2Pad-2.1.1-linux-x86_64
+tar -xzf Switch2Pad-2.2.0-linux-x86_64.tar.gz
+cd Switch2Pad-2.2.0-linux-x86_64
 ./install.sh          # instala en ~/.local y, con sudo, las reglas udev
 ```
 
@@ -58,7 +64,7 @@ Si al abrir la app Steam ya tiene el mando, la barra de estado lo indica y ofrec
 |---|---|---|
 | Compatibilidad | Casi todos los juegos de PC | Juegos con soporte de mando PS4, emuladores, Steam |
 | Giroscopio / movimiento | No (XInput no lo admite) | Sí |
-| Touchpad | — | Deslizar con el giroscopio y clic (por defecto en el botón Captura) |
+| Touchpad | — | Gestos de uno y dos dedos, deslizamientos y clic (botón Captura) |
 
 ## Configuración
 

@@ -21,7 +21,7 @@ from ..i18n import LANGUAGES, Translator
 from ..outputs import DRIVER_NAME, driver_installer
 from ..protocol import PHYSICAL_BUTTONS
 from . import win11
-from .controller_view import ControllerView
+from .controller3d import Controller3DView
 
 OUTPUT_NAMES = {"xbox": "Xbox 360", "ps4": "DualShock 4"}
 
@@ -283,7 +283,7 @@ class MainWindow(QMainWindow):
         left = QVBoxLayout()
         left.setSpacing(14)
         self.live_card = Card("")
-        self.controller = ControllerView()
+        self.controller = Controller3DView()
         self.controller.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.live_card.lay.addWidget(self.controller, 1)
         self.chips = QLabel()
@@ -405,6 +405,9 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.opts_card)
 
         self.touch_card = Card("")
+        self.touch_sticks_cb = QCheckBox()
+        self.touch_sticks_cb.setChecked(self.cfg.get("touch_sticks", True))
+        self.touch_sticks_cb.toggled.connect(lambda _: self._save())
         self.touch_cb = QCheckBox()
         self.touch_cb.setChecked(self.cfg.get("touch_gyro", True))
         self.touch_cb.toggled.connect(lambda _: self._save())
@@ -422,7 +425,7 @@ class MainWindow(QMainWindow):
         srow.addWidget(self.touch_sens_lbl)
         srow.addWidget(self.touch_sens, 1)
         srow.addWidget(self.touch_sens_val)
-        for w in (self.touch_cb, self.touch_desc):
+        for w in (self.touch_desc, self.touch_sticks_cb, self.touch_cb):
             self.touch_card.lay.addWidget(w)
         self.touch_card.lay.addLayout(srow)
         lay.addWidget(self.touch_card)
@@ -587,6 +590,7 @@ class MainWindow(QMainWindow):
         self.subtitle_lbl.setText(t("subtitle"))
         self.lang_lbl.setText(t("language"))
         self.live_card.title.setText(t("live_title"))
+        self.controller.set_hint(t("view_hint"))
         self.motion_card.title.setText(t("motion_title"))
         self.motion_view.labels = (t("gyro"), t("tilt"), t("no_motion"))
         for b, key in zip(self.nav_buttons, ("tab_general", "tab_buttons", "tab_steam")):
@@ -606,6 +610,7 @@ class MainWindow(QMainWindow):
             self.theme_combo.setItemText(i, t(key))
         self.touch_card.title.setText(t("touch_title"))
         self.touch_cb.setText(t("touch_gyro"))
+        self.touch_sticks_cb.setText(t("touch_sticks"))
         self.touch_desc.setText(t("touch_gyro_desc"))
         self.touch_sens_lbl.setText(t("touch_sens"))
         self.bg_card.title.setText(t("background"))
@@ -671,6 +676,7 @@ class MainWindow(QMainWindow):
             "theme": self.theme_combo.currentData(),
             "steam_hide_virtual": self.steam_virtual.isChecked() if hasattr(self, "steam_virtual") else False,
             "touch_gyro": self.touch_cb.isChecked(),
+            "touch_sticks": self.touch_sticks_cb.isChecked(),
             "touch_sensitivity": self.touch_sens.value(),
             "close_to_tray": self.tray_cb.isChecked(),
             "autostart": self.autostart_cb.isChecked(),

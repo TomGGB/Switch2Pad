@@ -235,7 +235,7 @@ class DS4Output(_RumbleMixin):
         self._t0 = time.monotonic()
         self._last = None
         self._touch_down = False
-        self._finger = None  # (x, y) del dedo virtual o None
+        self._fingers = {}  # slot -> (track, x, y) de los dedos apoyados
 
     def reset(self):
         self._last = None
@@ -284,26 +284,34 @@ class DS4Output(_RumbleMixin):
             m.syn()
 
     def _push_finger(self, touch):
+        """Protocolo multitactil tipo B (ranuras), como hid-playstation."""
         ec, t = self._ec, self.touch
-        finger = (touch.x, touch.y, touch.track) if touch is not None and touch.down else None
-        if finger == self._finger:
+        now = {slot: (track, x, y) for slot, track, x, y in (touch.fingers if touch is not None else ())[:2]}
+        if now == self._fingers:
             return
-        t.write(ec.EV_ABS, ec.ABS_MT_SLOT, 0)
-        if finger is None:
-            t.write(ec.EV_ABS, ec.ABS_MT_TRACKING_ID, -1)
-            t.write(ec.EV_KEY, ec.BTN_TOUCH, 0)
-            t.write(ec.EV_KEY, ec.BTN_TOOL_FINGER, 0)
-        else:
-            x, y, track = finger
-            if self._finger is None:
+        for slot in (0, 1):
+            old, new = self._fingers.get(slot), now.get(slot)
+            if old == new:
+                continue
+            t.write(ec.EV_ABS, ec.ABS_MT_SLOT, slot)
+            if new is None:
+                t.write(ec.EV_ABS, ec.ABS_MT_TRACKING_ID, -1)
+                continue
+            track, x, y = new
+            if old is None or old[0] != track:
                 t.write(ec.EV_ABS, ec.ABS_MT_TRACKING_ID, track)
-                t.write(ec.EV_KEY, ec.BTN_TOUCH, 1)
-                t.write(ec.EV_KEY, ec.BTN_TOOL_FINGER, 1)
-            for a, b, v in ((ec.ABS_MT_POSITION_X, ec.ABS_X, x), (ec.ABS_MT_POSITION_Y, ec.ABS_Y, y)):
-                t.write(ec.EV_ABS, a, v)
-                t.write(ec.EV_ABS, b, v)
+            t.write(ec.EV_ABS, ec.ABS_MT_POSITION_X, x)
+            t.write(ec.EV_ABS, ec.ABS_MT_POSITION_Y, y)
+        count = len(now)
+        t.write(ec.EV_KEY, ec.BTN_TOUCH, int(count > 0))
+        t.write(ec.EV_KEY, ec.BTN_TOOL_FINGER, int(count == 1))
+        t.write(ec.EV_KEY, ec.BTN_TOOL_DOUBLETAP, int(count == 2))
+        if count:
+            _, x, y = now[min(now)]
+            t.write(ec.EV_ABS, ec.ABS_X, x)
+            t.write(ec.EV_ABS, ec.ABS_Y, y)
         t.syn()
-        self._finger = finger
+        self._fingers = now
 
     def close(self):
         for dev in (self.touch, self.motion, self.ui):

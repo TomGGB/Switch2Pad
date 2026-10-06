@@ -32,6 +32,7 @@ DEFAULT_CONFIG = {
     "theme": "system",       # system | light | dark
     "steam_hide_virtual": False,
     "touch_gyro": True,        # touchpad: deslizar con el giroscopio
+    "touch_sticks": True,      # touchpad: sticks = dedos, cruceta = deslizamientos
     "touch_sensitivity": 25,   # pixeles del touchpad por grado
     "autostart": False,
     "close_to_tray": True,     # la X deja la app en la bandeja
