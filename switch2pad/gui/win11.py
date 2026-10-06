@@ -6,6 +6,7 @@ import sys
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWA_SYSTEMBACKDROP_TYPE = 38
+DWMSBT_NONE = 1
 DWMSBT_MAINWINDOW = 2  # Mica
 DWMWCP_ROUND = 2
 
@@ -13,6 +14,12 @@ DWMWCP_ROUND = 2
 class MARGINS(ctypes.Structure):
     _fields_ = [("cxLeftWidth", ctypes.c_int), ("cxRightWidth", ctypes.c_int),
                 ("cyTopHeight", ctypes.c_int), ("cyBottomHeight", ctypes.c_int)]
+
+
+def _refresh_frame(hwnd):
+    """Obliga a DWM a recalcular el marco (si no, cambiar el fondo en caliente no se ve)."""
+    SWP_NOSIZE, SWP_NOMOVE, SWP_NOZORDER, SWP_FRAMECHANGED = 0x0001, 0x0002, 0x0004, 0x0020
+    ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED)
 
 
 def is_windows11():
@@ -37,7 +44,20 @@ def apply_mica(hwnd, dark):
     _set_attr(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND)
     m = MARGINS(-1, -1, -1, -1)
     ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(m))
-    return _set_attr(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_MAINWINDOW)
+    ok = _set_attr(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_MAINWINDOW)
+    _refresh_frame(hwnd)
+    return ok
+
+
+def disable_mica(hwnd, dark):
+    """Vuelve al fondo normal de la ventana (sin Mica)."""
+    if not is_windows11():
+        return
+    set_dark_titlebar(hwnd, dark)
+    _set_attr(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE)
+    m = MARGINS(0, 0, 0, 0)
+    ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(m))
+    _refresh_frame(hwnd)
 
 
 def accent_color():

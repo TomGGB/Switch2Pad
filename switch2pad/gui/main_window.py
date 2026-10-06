@@ -193,7 +193,7 @@ class MotionView(QWidget):
 
 class MainWindow(QMainWindow):
     # Globales: no dependen del perfil
-    GLOBAL_KEYS = ("language", "theme", "steam_hide_virtual", "close_to_tray", "autostart", "hotkeys",
+    GLOBAL_KEYS = ("language", "theme", "mica", "steam_hide_virtual", "close_to_tray", "autostart", "hotkeys",
                    "check_updates", "profile_auto")
     TAB_KEYS = ("tab_general", "tab_buttons", "tab_motion", "tab_profiles", "tab_steam")
     STEAM_TAB = 4
@@ -452,6 +452,10 @@ class MainWindow(QMainWindow):
         bottom.addWidget(self.theme_lbl)
         bottom.addWidget(self.theme_combo)
         self.opts_card.lay.addLayout(bottom)
+        self.mica_cb = QCheckBox()
+        self.mica_cb.setVisible(win11.is_windows11())   # Mica solo existe en Windows 11
+        self.mica_cb.toggled.connect(lambda _: (self._save(), self._apply_theme()))
+        self.opts_card.lay.addWidget(self.mica_cb)
         lay.addWidget(self.opts_card)
 
         self.sticks_card = Card("")
@@ -679,10 +683,17 @@ class MainWindow(QMainWindow):
         if self.app.style().name().lower() == "fusion":
             self.app.setPalette(_fusion_palette(dark, accent))
 
+        want_mica = win11.is_windows11() and (self.mica_cb.isChecked() if hasattr(self, "mica_cb")
+                                              else self.base.get("mica", True))
+        # La transparencia solo se aplica al crear la ventana: en Windows 11 queda siempre
+        # activada y sin Mica se pinta un fondo solido encima (asi se puede alternar en caliente)
         self.setAttribute(Qt.WA_TranslucentBackground, win11.is_windows11())
-        self.mica = win11.is_windows11() and win11.apply_mica(int(self.winId()), dark)
-        if not self.mica and sys.platform == "win32":
-            win11.set_dark_titlebar(int(self.winId()), dark)
+        self.mica = want_mica and win11.apply_mica(int(self.winId()), dark)
+        if not self.mica:
+            if win11.is_windows11():
+                win11.disable_mica(int(self.winId()), dark)
+            elif sys.platform == "win32":
+                win11.set_dark_titlebar(int(self.winId()), dark)
 
         fg = "#ffffff" if dark else "#1b1b1b"
         fg2 = "rgba(255,255,255,0.68)" if dark else "rgba(0,0,0,0.60)"
@@ -757,6 +768,7 @@ class MainWindow(QMainWindow):
         self.test_btn.setText(t("test_rumble"))
         self.theme_lbl.setText(t("theme"))
         self._set_combo_texts(self.theme_combo, ("theme_system", "theme_light", "theme_dark"))
+        self.mica_cb.setText(t("mica"))
         self.sticks_card.title.setText(t("sticks_title"))
         self.dz_lbl.setText(t("deadzone"))
         self.curve_lbl.setText(t("curve"))
@@ -869,7 +881,7 @@ class MainWindow(QMainWindow):
         widgets = [self.emu_xbox, self.emu_ps4, self.layout_pos, self.layout_let, self.rumble_cb, self.motion_cb,
                    self.invert_ly_cb, self.invert_ry_cb, self.hotkeys_cb, self.tray_cb, self.autostart_cb,
                    self.updates_cb, self.touch_cb, self.touch_sticks_cb, self.gyro_invert_cb, self.prof_auto_cb,
-                   self.steam_virtual, self.theme_combo, self.curve_combo, self.gyro_mode, self.gyro_act,
+                   self.steam_virtual, self.theme_combo, self.mica_cb, self.curve_combo, self.gyro_mode, self.gyro_act,
                    self.gyro_btn, self.gyro_axis, *self.turbo_checks.values()]
         for w in widgets:
             w.blockSignals(True)
@@ -896,6 +908,7 @@ class MainWindow(QMainWindow):
         self.prof_auto_cb.setChecked(b.get("profile_auto", True))
         self.steam_virtual.setChecked(bool(b.get("steam_hide_virtual", False)))
         self.theme_combo.setCurrentIndex(max(0, self.theme_combo.findData(b.get("theme", "system"))))
+        self.mica_cb.setChecked(b.get("mica", True))
         for w in widgets:
             w.blockSignals(False)
         self._set_slider(self.rumble_str, c.get("rumble_strength", 100))
@@ -932,6 +945,7 @@ class MainWindow(QMainWindow):
             "mapping": {n: tgt for n, tgt in self.targets.items() if n not in config_mod.FACE_BUTTONS},
             "language": self.lang_combo.currentData(),
             "theme": self.theme_combo.currentData(),
+            "mica": self.mica_cb.isChecked(),
             "steam_hide_virtual": self.steam_virtual.isChecked(),
             "close_to_tray": self.tray_cb.isChecked(),
             "autostart": self.autostart_cb.isChecked(),

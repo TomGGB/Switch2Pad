@@ -37,6 +37,7 @@ DEFAULT_CONFIG = {
     "deadzone": 0.06,
     "language": "",          # "" = idioma del sistema
     "theme": "system",       # system | light | dark
+    "mica": True,            # Windows 11: fondo Mica (False = diseno normal)
     "steam_hide_virtual": False,
     "touch_gyro": True,        # touchpad: deslizar con el giroscopio
     "touch_sticks": True,      # touchpad: sticks = dedos, cruceta = deslizamientos

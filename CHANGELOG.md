@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.1
+- New app icon designed by the author (app, tray, Windows .exe, Linux menu entry, GitHub).
+- Windows 11: option to choose between the Mica design and the normal design.
+- CI: Windows jobs no longer hang waiting for the ViGEmBus installer.
+
 ## 2.4.0
 - Gyro aiming in any game: move the mouse or the right stick by moving the controller (Xbox and PS4 modes).
 - Per-game profiles that switch automatically with the game in the foreground.

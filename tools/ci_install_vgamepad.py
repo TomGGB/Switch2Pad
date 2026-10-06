@@ -2,18 +2,18 @@
 
 El setup.py de vgamepad lanza el instalador de ViGEmBus con msiexec de forma interactiva
 cuando no lo encuentra, y en un runner de GitHub Actions eso se queda esperando para
-siempre. Aqui se descarga el paquete, se copian sus archivos (incluidos ViGEmClient.dll y
+siempre (pip lo ejecuta incluso con "pip download" para leer los metadatos). Aqui se
+descarga el .tar.gz directamente de PyPI, sin pip, se copian sus archivos (incluidos ViGEmClient.dll y
 el instalador .msi que la app ofrece al usuario) y se registra como instalado para pip.
 """
 
-import glob
+import json
 import os
 import shutil
-import subprocess
-import sys
 import sysconfig
 import tarfile
 import tempfile
+import urllib.request
 
 VERSION = "0.1.0"
 
@@ -21,9 +21,11 @@ VERSION = "0.1.0"
 def main():
     site = sysconfig.get_paths()["purelib"]
     with tempfile.TemporaryDirectory() as tmp:
-        subprocess.check_call([sys.executable, "-m", "pip", "download", "--no-deps", "--no-binary", ":all:",
-                               f"vgamepad=={VERSION}", "-d", tmp])
-        archive = glob.glob(os.path.join(tmp, "vgamepad-*.tar.gz"))[0]
+        with urllib.request.urlopen(f"https://pypi.org/pypi/vgamepad/{VERSION}/json", timeout=30) as r:
+            urls = json.load(r)["urls"]
+        sdist = next(u for u in urls if u["packagetype"] == "sdist")
+        archive = os.path.join(tmp, sdist["filename"])
+        urllib.request.urlretrieve(sdist["url"], archive)
         with tarfile.open(archive) as tar:
             tar.extractall(tmp, filter="data")
         src = os.path.join(tmp, f"vgamepad-{VERSION}", "vgamepad")

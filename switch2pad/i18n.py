@@ -12,6 +12,7 @@ LANGUAGES = {
 
 STRINGS = {
     "es": {
+        "mica": 'Diseño Mica de Windows 11 (fondo translúcido)',
         "tab_motion": 'Movimiento',
         "tab_profiles": 'Perfiles',
         "rumble_strength": 'Intensidad de la vibración',
@@ -158,6 +159,7 @@ STRINGS = {
         "serial": "Nº de serie",
     },
     "en": {
+        "mica": 'Windows 11 Mica design (translucent background)',
         "tab_motion": 'Motion',
         "tab_profiles": 'Profiles',
         "rumble_strength": 'Rumble strength',
@@ -304,6 +306,7 @@ STRINGS = {
         "serial": "Serial no.",
     },
     "pt": {
+        "mica": 'Design Mica do Windows 11 (fundo translúcido)',
         "tab_motion": 'Movimento',
         "tab_profiles": 'Perfis',
         "rumble_strength": 'Intensidade da vibração',
@@ -450,6 +453,7 @@ STRINGS = {
         "serial": "Nº de série",
     },
     "fr": {
+        "mica": 'Design Mica de Windows 11 (arrière-plan translucide)',
         "tab_motion": 'Mouvement',
         "tab_profiles": 'Profils',
         "rumble_strength": 'Intensité des vibrations',
@@ -596,6 +600,7 @@ STRINGS = {
         "serial": "N° de série",
     },
     "de": {
+        "mica": 'Windows-11-Mica-Design (durchscheinender Hintergrund)',
         "tab_motion": 'Bewegung',
         "tab_profiles": 'Profile',
         "rumble_strength": 'Vibrationsstärke',
@@ -742,6 +747,7 @@ STRINGS = {
         "serial": "Seriennr.",
     },
     "it": {
+        "mica": 'Design Mica di Windows 11 (sfondo traslucido)',
         "tab_motion": 'Movimento',
         "tab_profiles": 'Profili',
         "rumble_strength": 'Intensità della vibrazione',
@@ -888,6 +894,7 @@ STRINGS = {
         "serial": "N. di serie",
     },
     "ja": {
+        "mica": 'Windows 11 の Mica デザイン（半透明の背景）',
         "tab_motion": 'モーション',
         "tab_profiles": 'プロファイル',
         "rumble_strength": '振動の強さ',
