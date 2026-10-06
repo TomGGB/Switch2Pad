@@ -6,6 +6,12 @@ import sys
 from PyInstaller.utils.hooks import collect_all, collect_dynamic_libs
 
 IS_WIN = sys.platform == "win32"
+
+# Si un modulo tiene un error de sintaxis, PyInstaller lo omite sin avisar y el exe falla
+# al arrancar: mejor detener la compilacion.
+import compileall
+if not compileall.compile_dir("switch2pad", quiet=1):
+    raise SystemExit("switch2pad tiene errores de sintaxis; corrigelos antes de compilar")
 datas, binaries, hiddenimports = [], [], ["hid", "usb.backend.libusb1"]
 
 b = collect_dynamic_libs("libusb_package")

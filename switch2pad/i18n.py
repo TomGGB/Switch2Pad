@@ -24,8 +24,7 @@ STRINGS = {
         "close_to_tray": 'Al cerrar la ventana, seguir en segundo plano',
         "touch_title": 'Touchpad',
         "touch_gyro": 'Arrastrar un dedo con el giroscopio',
-        "touch_gyro_desc": 'Mantén pulsado el botón del touchpad (Captura) y:\n• Stick derecho / izquierdo: dedo 1 / dedo 2. Mueve los dos a la vez para gestos de dos dedos.\n• Cruceta: deslizamiento rápido (con ZL o ZR, de dos dedos).\n• L3 / R3: dedo en el lado izquierdo / derecho + clic (ambos: dos dedos + clic).
-• Girar el mando: arrastra un dedo.\n• Toque corto del botón: clic.',
+        "touch_gyro_desc": 'Mantén pulsado el botón del touchpad (Captura) y:\n• Stick derecho / izquierdo: dedo 1 / dedo 2. Mueve los dos a la vez para gestos de dos dedos.\n• Cruceta: deslizamiento rápido (con ZL o ZR, de dos dedos).\n• L3 / R3: dedo en el lado izquierdo / derecho + clic (ambos: dos dedos + clic).\n• Girar el mando: arrastra un dedo.\n• Toque corto del botón: clic.',
         "touch_sens": 'Sensibilidad del deslizamiento',
         "subtitle": "Tu mando de Switch 2 como mando de Xbox o PS4",
         "language": "Idioma",
@@ -114,8 +113,7 @@ STRINGS = {
         "close_to_tray": 'Keep running in the background when the window is closed',
         "touch_title": 'Touchpad',
         "touch_gyro": 'Drag a finger with the gyroscope',
-        "touch_gyro_desc": 'Hold the touchpad button (Capture) and:\n• Right / left stick: finger 1 / finger 2. Move both at once for two-finger gestures.\n• D-pad: quick swipe (with ZL or ZR, two fingers).\n• L3 / R3: finger on the left / right side + click (both: two fingers + click).
-• Rotate the controller: drag one finger.\n• Short tap of the button: click.',
+        "touch_gyro_desc": 'Hold the touchpad button (Capture) and:\n• Right / left stick: finger 1 / finger 2. Move both at once for two-finger gestures.\n• D-pad: quick swipe (with ZL or ZR, two fingers).\n• L3 / R3: finger on the left / right side + click (both: two fingers + click).\n• Rotate the controller: drag one finger.\n• Short tap of the button: click.',
         "touch_sens": 'Swipe sensitivity',
         "subtitle": "Use your Switch 2 controller as an Xbox or PS4 controller",
         "language": "Language",
@@ -204,8 +202,7 @@ STRINGS = {
         "close_to_tray": 'Ao fechar a janela, continuar em segundo plano',
         "touch_title": 'Touchpad',
         "touch_gyro": 'Arrastar um dedo com o giroscópio',
-        "touch_gyro_desc": 'Mantenha o botão do touchpad (Captura) pressionado e:\n• Analógico direito / esquerdo: dedo 1 / dedo 2. Mova os dois juntos para gestos de dois dedos.\n• Direcional: deslize rápido (com ZL ou ZR, de dois dedos).\n• L3 / R3: dedo no lado esquerdo / direito + clique (ambos: dois dedos + clique).
-• Girar o controle: arrasta um dedo.\n• Toque curto no botão: clique.',
+        "touch_gyro_desc": 'Mantenha o botão do touchpad (Captura) pressionado e:\n• Analógico direito / esquerdo: dedo 1 / dedo 2. Mova os dois juntos para gestos de dois dedos.\n• Direcional: deslize rápido (com ZL ou ZR, de dois dedos).\n• L3 / R3: dedo no lado esquerdo / direito + clique (ambos: dois dedos + clique).\n• Girar o controle: arrasta um dedo.\n• Toque curto no botão: clique.',
         "touch_sens": 'Sensibilidade do deslize',
         "subtitle": "Use seu controle de Switch 2 como controle de Xbox ou PS4",
         "language": "Idioma",
@@ -294,8 +291,7 @@ STRINGS = {
         "close_to_tray": 'Continuer en arrière-plan à la fermeture de la fenêtre',
         "touch_title": 'Pavé tactile',
         "touch_gyro": 'Faire glisser un doigt avec le gyroscope',
-        "touch_gyro_desc": 'Maintenez le bouton du pavé tactile (Capture) et :\n• Stick droit / gauche : doigt 1 / doigt 2. Bougez les deux pour les gestes à deux doigts.\n• Croix : glissement rapide (avec ZL ou ZR, à deux doigts).\n• L3 / R3 : doigt à gauche / à droite + clic (les deux : deux doigts + clic).
-• Tourner la manette : fait glisser un doigt.\n• Appui bref sur le bouton : clic.',
+        "touch_gyro_desc": 'Maintenez le bouton du pavé tactile (Capture) et :\n• Stick droit / gauche : doigt 1 / doigt 2. Bougez les deux pour les gestes à deux doigts.\n• Croix : glissement rapide (avec ZL ou ZR, à deux doigts).\n• L3 / R3 : doigt à gauche / à droite + clic (les deux : deux doigts + clic).\n• Tourner la manette : fait glisser un doigt.\n• Appui bref sur le bouton : clic.',
         "touch_sens": 'Sensibilité du glissement',
         "subtitle": "Utilisez votre manette Switch 2 comme une manette Xbox ou PS4",
         "language": "Langue",
@@ -384,8 +380,7 @@ STRINGS = {
         "close_to_tray": 'Beim Schließen des Fensters im Hintergrund weiterlaufen',
         "touch_title": 'Touchpad',
         "touch_gyro": 'Einen Finger mit dem Gyroskop ziehen',
-        "touch_gyro_desc": 'Halte die Touchpad-Taste (Aufnahme) gedrückt und:\n• Rechter / linker Stick: Finger 1 / Finger 2. Beide zugleich für Zwei-Finger-Gesten.\n• Steuerkreuz: schnelles Wischen (mit ZL oder ZR mit zwei Fingern).\n• L3 / R3: Finger links / rechts + Klick (beide: zwei Finger + Klick).
-• Controller drehen: zieht einen Finger.\n• Kurzes Tippen der Taste: Klick.',
+        "touch_gyro_desc": 'Halte die Touchpad-Taste (Aufnahme) gedrückt und:\n• Rechter / linker Stick: Finger 1 / Finger 2. Beide zugleich für Zwei-Finger-Gesten.\n• Steuerkreuz: schnelles Wischen (mit ZL oder ZR mit zwei Fingern).\n• L3 / R3: Finger links / rechts + Klick (beide: zwei Finger + Klick).\n• Controller drehen: zieht einen Finger.\n• Kurzes Tippen der Taste: Klick.',
         "touch_sens": 'Wisch-Empfindlichkeit',
         "subtitle": "Nutze deinen Switch 2 Controller als Xbox- oder PS4-Controller",
         "language": "Sprache",
@@ -474,8 +469,7 @@ STRINGS = {
         "close_to_tray": 'Alla chiusura della finestra, continua in background',
         "touch_title": 'Touchpad',
         "touch_gyro": 'Trascina un dito con il giroscopio',
-        "touch_gyro_desc": 'Tieni premuto il pulsante del touchpad (Acquisizione) e:\n• Stick destro / sinistro: dito 1 / dito 2. Muovili insieme per i gesti a due dita.\n• Croce direzionale: scorrimento rapido (con ZL o ZR, a due dita).\n• L3 / R3: dito a sinistra / destra + clic (entrambi: due dita + clic).
-• Ruota il controller: trascina un dito.\n• Tocco breve del pulsante: clic.',
+        "touch_gyro_desc": 'Tieni premuto il pulsante del touchpad (Acquisizione) e:\n• Stick destro / sinistro: dito 1 / dito 2. Muovili insieme per i gesti a due dita.\n• Croce direzionale: scorrimento rapido (con ZL o ZR, a due dita).\n• L3 / R3: dito a sinistra / destra + clic (entrambi: due dita + clic).\n• Ruota il controller: trascina un dito.\n• Tocco breve del pulsante: clic.',
         "touch_sens": 'Sensibilità dello scorrimento',
         "subtitle": "Usa il controller di Switch 2 come controller Xbox o PS4",
         "language": "Lingua",
@@ -564,8 +558,7 @@ STRINGS = {
         "close_to_tray": 'ウィンドウを閉じてもバックグラウンドで実行する',
         "touch_title": 'タッチパッド',
         "touch_gyro": 'ジャイロで指をドラッグ',
-        "touch_gyro_desc": 'タッチパッドボタン（キャプチャー）を押したまま:\n• 右 / 左スティック: 指1 / 指2。両方を同時に動かすと2本指ジェスチャー。\n• 十字ボタン: すばやくスワイプ（ZL か ZR を押すと2本指）。\n• L3 / R3: 左 / 右側に指を置いてクリック（両方で2本指クリック）。
-• コントローラーを傾ける: 指を1本ドラッグ。\n• ボタンを短く押す: クリック。',
+        "touch_gyro_desc": 'タッチパッドボタン（キャプチャー）を押したまま:\n• 右 / 左スティック: 指1 / 指2。両方を同時に動かすと2本指ジェスチャー。\n• 十字ボタン: すばやくスワイプ（ZL か ZR を押すと2本指）。\n• L3 / R3: 左 / 右側に指を置いてクリック（両方で2本指クリック）。\n• コントローラーを傾ける: 指を1本ドラッグ。\n• ボタンを短く押す: クリック。',
         "touch_sens": 'スワイプの感度',
         "subtitle": "Switch 2 のコントローラーを Xbox / PS4 コントローラーとして使う",
         "language": "言語",
