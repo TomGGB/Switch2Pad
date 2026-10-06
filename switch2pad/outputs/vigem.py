@@ -174,7 +174,10 @@ class DS4Output:
         self._touch_counter = (getattr(self, "_touch_counter", 0) + 1) & 0xFF
         buf[33] = self._touch_counter
         buf[34] = buf[38] = 0x80  # dedos levantados (bit 7 = sin contacto)
-        for slot, track, x, y in (touch.fingers if touch is not None else ())[:2]:
+        fingers = sorted(touch.fingers if touch is not None else ())[:2]
+        if len(fingers) == 1:  # un solo dedo siempre en el primer registro, como el DS4 real
+            fingers = [(0,) + tuple(fingers[0][1:])]
+        for slot, track, x, y in fingers:
             o = 34 + 4 * slot
             buf[o] = track & 0x7F
             buf[o + 1] = x & 0xFF

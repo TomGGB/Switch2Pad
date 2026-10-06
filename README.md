@@ -12,7 +12,8 @@ acelerómetro (sensor de movimiento).
   - Stick derecho / izquierdo = dedo 1 / dedo 2. Mueve los dos a la vez para gestos de dos dedos
     (por ejemplo "MOVE CAR" en inFAMOUS Second Son: Captura + los dos sticks hacia arriba).
   - Cruceta = deslizamiento rápido; con ZL o ZR, de dos dedos.
-  - L3 / R3 = clic del touchpad con los dedos apoyados. Girar el mando = arrastrar un dedo (opcional).
+  - L3 / R3 = dedo en el lado izquierdo / derecho del touchpad + clic; los dos a la vez = dos dedos + clic.
+  - Girar el mando = arrastrar un dedo (opcional).
   - Toque corto del botón = clic.
   Mientras se mantiene el botón, los sticks y la cruceta no llegan al juego.
 - **Segundo plano**: al cerrar con la X la app sigue en la bandeja del sistema, con acciones rápidas
@@ -31,8 +32,8 @@ acelerómetro (sensor de movimiento).
 ## Linux
 
 ```sh
-tar -xzf Switch2Pad-2.2.0-linux-x86_64.tar.gz
-cd Switch2Pad-2.2.0-linux-x86_64
+tar -xzf Switch2Pad-2.2.1-linux-x86_64.tar.gz
+cd Switch2Pad-2.2.1-linux-x86_64
 ./install.sh          # instala en ~/.local y, con sudo, las reglas udev
 ```
 

@@ -7,7 +7,7 @@ Mientras se mantiene el boton asignado a "TOUCHPAD" (Captura por defecto) se ent
     El dedo se apoya al mover el stick y se levanta al soltarlo, asi que un golpe de
     stick es un deslizamiento y mover los dos sticks es un gesto de dos dedos.
   * Cruceta -> deslizamiento rapido automatico en esa direccion (con ZL o ZR: dos dedos).
-  * L3 / R3 -> clic del touchpad con los dedos apoyados.
+  * L3 / R3 -> dedo en el lado izquierdo / derecho + clic (los dos: dos dedos + clic).
   * Giroscopio -> si no se usan los sticks, un dedo se arrastra girando el mando.
   * Toque corto del boton sin hacer nada mas -> clic.
 
@@ -121,8 +121,10 @@ class TouchpadGesture:
                     return TouchState(fingers, False, True)
 
             # Cada stick es un dedo
-            sticks = [(slot, sx, sy) for slot, (sx, sy) in ((0, (state.rx, state.ry)), (1, (state.lx, state.ly)))
-                      if (sx * sx + sy * sy) ** 0.5 > STICK_DEADZONE]
+            # Un dedo por stick inclinado o pulsado (R3 -> lado derecho, L3 -> lado izquierdo)
+            sticks = [(slot, sx, sy) for slot, (sx, sy), btn in
+                      ((0, (state.rx, state.ry), "RSTICK"), (1, (state.lx, state.ly), "LSTICK"))
+                      if (sx * sx + sy * sy) ** 0.5 > STICK_DEADZONE or b.get(btn)]
             if sticks and self._gyro_pos is not None:
                 self._active.clear()      # el dedo del giroscopio se levanta antes
                 self._gyro_pos = None
