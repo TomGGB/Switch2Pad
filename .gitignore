@@ -4,3 +4,6 @@ dist/
 __pycache__/
 *.pyc
 config.json
+
+# Fotos de referencia del mando (no se distribuyen)
+assets/*.avif

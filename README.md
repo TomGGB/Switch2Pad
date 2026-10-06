@@ -25,8 +25,8 @@ acelerómetro (sensor de movimiento).
 ## Linux
 
 ```sh
-tar -xzf Switch2Pad-2.1.0-linux-x86_64.tar.gz
-cd Switch2Pad-2.1.0-linux-x86_64
+tar -xzf Switch2Pad-2.1.1-linux-x86_64.tar.gz
+cd Switch2Pad-2.1.1-linux-x86_64
 ./install.sh          # instala en ~/.local y, con sudo, las reglas udev
 ```
 
